@@ -104,7 +104,7 @@ def main():
     parser.add_argument('--binary', action='store_true', default=False,
                         help="Write Plink binary output. If this option is not given, output is in Plink text format.")
     parser.add_argument('--log', metavar="PATH", default=None,
-                        help="Path for .json log output. Defaults to zcall_log.json in same directory as Plink output.")
+                        help="Path for .json log output. Defaults to [plink prefix]_log.json in same directory as Plink output.")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--null', action='store_true', default=False,
@@ -122,7 +122,7 @@ def main():
     else:
         args['out'] = dirName
     if args['log'] == None:
-        args['log'] = os.path.join(args['out'], 'zcall_log.json')
+        args['log'] = os.path.join(args['out'], args['plink']+'_log.json')
     else:
         args['log'] = os.path.abspath(args['log'])
     if args['null']:
