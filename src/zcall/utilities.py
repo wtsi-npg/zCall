@@ -61,10 +61,13 @@ class CallingBase(SharedBase):
     def findMAF(self, nAA, nBB, nAB):
         """ Find minor allele frequency """
         maf = None
-        if nAA > nBB:
-            maf = (nAB + 2 * nBB) / float(2*(nAA + nAB + nBB))
-        else:
-            maf = (nAB + 2 * nAA) / float(2*(nAA + nAB + nBB))
+        try:
+            if nAA > nBB:
+                maf = (nAB + 2 * nBB) / float(2*(nAA + nAB + nBB))
+            else:
+                maf = (nAB + 2 * nAA) / float(2*(nAA + nAB + nBB))
+        except ZeroDivisionError:
+            maf = 0
         return maf
 
     def normalizeCall(self, call, nAA, nBB):
