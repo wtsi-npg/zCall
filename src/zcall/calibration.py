@@ -173,7 +173,8 @@ class MetricEvaluator(SharedBase):
             out.close()
         return (rows, concords, gains)
 
-    def writeBest(self, inPaths, thresholdPath, outPath, verbose=False):
+    def writeBest(self, inPaths, thresholdPath, outPath, textPath=None,
+                  verbose=False):
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
@@ -190,8 +191,22 @@ class MetricEvaluator(SharedBase):
         out = open(outPath, 'w')
         out.write(json.dumps(results))
         out.close()
+        if textPath!=None:
+            self.writeMeanText(concords, gains, textPath)
         return results
-        
+
+    def writeMeanText(self, concords, gains, outPath, digits=6):
+        """Write plain text file with mean concordance/gain by z score"""
+        zRange = concords.keys()
+        zRange.sort()
+        output = []
+        for z in zRange:
+            concord = round(concords[z], digits)
+            gain = round(gains[z], digits)
+            output.append("%s\t%s\t%s\n" % (z, concord, gain) )
+        out = open(outPath, 'w')
+        out.write(''.join(output))
+        out.close()
 
 class MetricFinder(CallingBase):
     """Class to evaluate GTC objects by concordance and gain metrics

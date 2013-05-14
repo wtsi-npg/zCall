@@ -23,12 +23,14 @@ def main():
                         help="Path to .json file containing paths to .json metrics files")
     parser.add_argument('--thresholds', required=True, metavar="PATH", 
                         help="Path to .json file containing threshold .txt paths indexed by z score")
-    parser.add_argument('--out', required=False, metavar="PATH", 
-                        help="Path for .json output", default=".")
+    parser.add_argument('--out', required=True, metavar="PATH", 
+                        help="Path for .json output")
+    parser.add_argument('--text', required=False, metavar="PATH", 
+                        help="Path for text file containing metric data, for input to R scripts. Optional.", default=None)
     args = vars(parser.parse_args())
     metricPaths = json.loads(open(args['metrics']).read())
     MetricEvaluator().writeBest(metricPaths, args['thresholds'], 
-                                args['out'])
+                                args['out'], args['text'])
 
 if __name__ == "__main__":
     main()
