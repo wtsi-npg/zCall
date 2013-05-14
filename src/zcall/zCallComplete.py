@@ -121,7 +121,7 @@ def parseArgs():
     parser.add_argument('--gtc_end', metavar="INT", default = -1,
                         help="Ending index in GTC .json file for threshold evaluation")
     parser.add_argument('--samples', required=True, metavar="PATH", 
-                        help="Path to .json file containing sample URIs (unique identifiers), gender codes, and .gtc data paths")
+                        help="Path to .json file containing sample URIs (unique identifiers), gender codes (optional), and .gtc data paths")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     args = vars(parser.parse_args())

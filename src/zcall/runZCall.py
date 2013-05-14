@@ -96,7 +96,7 @@ def main():
     parser.add_argument('--egt', required=True, metavar="PATH", 
                         help="EGT input file")    
     parser.add_argument('--samples', required=True, metavar="PATH", 
-                        help="Path to .json file containing sample URI's, genders, and .gtc input paths")
+                        help="Path to .json file containing sample URI's, genders (optional), and .gtc input paths")
     parser.add_argument('--out', required=True, metavar="DIR", 
                         help="Directory for output data")
     parser.add_argument('--plink', default='zcall', metavar="STRING", 
