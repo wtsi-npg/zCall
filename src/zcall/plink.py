@@ -72,12 +72,13 @@ class PlinkHandler:
         - Sex (1=male; 2=female; other=unknown)
         - Phenotype
         Conventionally, set family/individual IDs to sample URI
-        Set sex if known
+        Set gender code if known, otherwise default to -9
         Other values set to -9 as placeholder"""
         fields = ['-9']*6
         fields[0] = sample['uri']
         fields[1] = sample['uri']
-        fields[4] = str(sample['gender_code'])
+        try: fields[4] = str(sample['gender_code'])
+        except KeyError: pass
         return fields
 
     def numericChromosomes(self, chroms):
