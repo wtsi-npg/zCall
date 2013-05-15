@@ -302,6 +302,8 @@ class SampleEvaluator(SharedBase):
         self.egtPath = egtPath
         self.bpm = BPM(bpmPath)
         self.metricFinder = MetricFinder(bpmPath, egtPath)
+        self.evaluated = 0 # running total of evaluated samples
+        self.sampleTotal = 0 # total number of samples to evaluate 
 
     def convertCountKeys(self, counts):
         """Convert keys in counts dictionary to string; required for JSON output
@@ -322,7 +324,10 @@ class SampleEvaluator(SharedBase):
         - GTC object
         """
         gtcName = os.path.split(gtc.getInputPath())[1]
-        if verbose: print "Evaluating z scores for sample", gtcName
+        self.evaluated += 1
+        if verbose: 
+            print "Evaluating z scores for sample "+str(self.evaluated)+\
+                " of "+str(self.sampleTotal)+": "+gtcName
         zList = thresholds.keys()
         zList.sort()
         results = {}
@@ -359,6 +364,7 @@ class SampleEvaluator(SharedBase):
         if verbose: print "Evaluating samples."
         output = []
         gtcPaths = self.readSampleJson(sampleJson)
+        self.evaluated = 0
         if end==-1: end = len(gtcPaths)
         if start>=end:
             raise ValueError("Must have GTC start index < end index")
@@ -366,6 +372,7 @@ class SampleEvaluator(SharedBase):
             raise ValueError("Must have GTC start index > 0")
         elif end > len(gtcPaths):
             raise ValueError("Must have GTC end index <= total GTC paths")
+        self.sampleTotal = end - start
         gtcPaths = gtcPaths[start:end]
         for gtcPath in gtcPaths:
             gtc = GTC(gtcPath, self.bpm.normID)
