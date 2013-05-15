@@ -52,6 +52,8 @@ class sampleTextParser:
             else: uri = uriPrefix+name
             if uri in uriset:
                 raise ValueError("Sample URI \""+uri+"\" is not unique")
+            else:
+                uriset.add(uri)
             sample['uri'] = uri
             sample['result'] = gtcPaths[name]
             sample['gender'] = -9
@@ -70,7 +72,7 @@ def main():
     parser.add_argument('--output', required=False, metavar="PATH", 
                         help="Path for .json output", default="samples.json")
     parser.add_argument('--uri', required=False, metavar="STRING",
-                       help="URI prefix to be prepended to all sample names, eg. uri:my_institution'", default=None)
+                       help="URI prefix to be prepended to all sample names, eg. uri:my_institution:'", default=None)
     args = vars(parser.parse_args())
     sampleTextParser().writeJson(args['input'], args['output'], args['uri']) 
 
