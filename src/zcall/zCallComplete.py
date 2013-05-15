@@ -45,10 +45,11 @@ class ZCallComplete:
         eva.run(thresholds, gtc, start, end, outPath, verbose)
         return outPath
 
-    def merge(self, metricPath, thresholdJson, outDir, verbose):
+    def merge(self, metricPath, thresholdJson, outDir, textPath, verbose):
         outPath = os.path.join(outDir, self.MERGED)
         eva = MetricEvaluator()
-        results = eva.writeBest([metricPath,], thresholdJson, outPath, verbose)
+        results = eva.writeBest([metricPath,], thresholdJson, outPath, 
+                                textPath, verbose)
         thresholdPath = results[eva.getBestThresholdKey()]
         return thresholdPath
 
@@ -76,6 +77,7 @@ class ZCallComplete:
         thresholdPath = self.merge(mJson, 
                                    tJson, 
                                    self.args['out'], 
+                                   './mean_concordance_gain.txt',
                                    self.args['verbose'])
         self.call(self.args['bpm'],
                   self.args['egt'],
