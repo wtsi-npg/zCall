@@ -1,5 +1,31 @@
 #! /usr/bin/python
 
+
+# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Publication of the zCall algorithm:
+# Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, 
+# O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia 
+# Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, 
+# Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. 
+# zCall: a rare variant caller for array-based genotyping: Genetics and 
+# population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. 
+# Epub 2012 Jul 27. PubMed PMID: 22843986.
+
+
 # zCall: A Rare Variant Caller for Array-based Genotyping
 # Jackie Goldstein
 # jigold@broadinstitute.org
@@ -18,6 +44,8 @@ if options.egt == None:
     print "specify EGT file path with -E"
     sys.exit()
 
+verbose = True
+
 ### Write header line
 head = ["SNP", "meanX", "meanY", "sdX", "sdY", "nMinorHom", "nCommonHom"] 
 print "\t".join(head) # Write header line
@@ -27,6 +55,10 @@ egt = EGT(options.egt)
 
 ## Iterate over each SNP in EGT object
 numSNPs = egt.numCodes ## number of SNPs in EGT file
+if verbose: sys.stderr.write("Total SNPs: "+str(numSNPs)+"\n")
+causes = ['CR', 'Min_cluster_size', 'MAF', 'HWE']
+excluded = [0]*4
+callRates = []
 for i in range(numSNPs):
 
     # Get SNP Name
@@ -39,11 +71,15 @@ for i in range(numSNPs):
     nTotal = nAA + nAB + nBB
 
     # Calculate Missing Rate (ignore SNPs that have less than 99% call rate)
-    if float(nTotal) / float(egt.numPoints) < 0.99:
-        continue
+    cr =  float(nTotal) / float(egt.numPoints)
+    callRates.append(cr)
+    #if cr < 0.99:
+        #excluded[0]+=1
+        #continue
 
     # Make sure there are at least 10 points in each homozygote cluster
     if nAA < 10 or nBB < 10:
+        excluded[1]+=1
         continue
     
     # Calculate MAF
@@ -54,6 +90,7 @@ for i in range(numSNPs):
 
     # MAF check ( >5% MAF)
     if maf < 0.05:
+        excluded[2]+=1
         continue
     
     # Hardy-Weinberg Equilibrium Check (don't use site if p_hwe < 0.00001)
@@ -75,6 +112,7 @@ for i in range(numSNPs):
         
     chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
     if chiSquare > chiCritical:
+        excluded[3]+=1
         continue
     
     # Extract the mean and sd for each common allele homozygote clusters in the noise dimension
@@ -108,3 +146,11 @@ for i in range(numSNPs):
 
     print "\t".join(out)
 
+if verbose: 
+    sys.stderr.write("Exclusion summary\n")
+    for i in range(4):
+        sys.stderr.write(causes[i]+"\t"+str(excluded[i])+"\n")
+    sys.stderr.write("TOTAL\t"+str(sum(excluded))+"\n")
+    mean = sum(callRates)/float(len(callRates))
+    sys.stderr.write("MEAN_CR\t"+str(mean)+"\n")
+    
