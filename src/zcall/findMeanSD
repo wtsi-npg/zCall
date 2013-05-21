@@ -44,7 +44,6 @@ if options.egt == None:
     print "specify EGT file path with -E"
     sys.exit()
 
-verbose = True
 
 ### Write header line
 head = ["SNP", "meanX", "meanY", "sdX", "sdY", "nMinorHom", "nCommonHom"] 
@@ -55,10 +54,15 @@ egt = EGT(options.egt)
 
 ## Iterate over each SNP in EGT object
 numSNPs = egt.numCodes ## number of SNPs in EGT file
-if verbose: sys.stderr.write("Total SNPs: "+str(numSNPs)+"\n")
 causes = ['CR', 'Min_cluster_size', 'MAF', 'HWE']
 excluded = [0]*4
 callRates = []
+
+# by default, apply 'sanity check' filter to SNPs
+exclude = set()
+output = []
+maxExclusion = 0.95
+
 for i in range(numSNPs):
 
     # Get SNP Name
@@ -70,51 +74,6 @@ for i in range(numSNPs):
     nBB = egt.nBB[i]
     nTotal = nAA + nAB + nBB
 
-    # Calculate Missing Rate (ignore SNPs that have less than 99% call rate)
-    cr =  float(nTotal) / float(egt.numPoints)
-    callRates.append(cr)
-    #if cr < 0.99:
-        #excluded[0]+=1
-        #continue
-
-    # Make sure there are at least 10 points in each homozygote cluster
-    if nAA < 10 or nBB < 10:
-        excluded[1]+=1
-        continue
-    
-    # Calculate MAF
-    if nAA > nBB:
-        maf = (nAB + 2 * nBB) / float(2 * nTotal)
-    elif nAA <= nBB:
-        maf = (nAB + 2 * nAA) / float(2 * nTotal)
-
-    # MAF check ( >5% MAF)
-    if maf < 0.05:
-        excluded[2]+=1
-        continue
-    
-    # Hardy-Weinberg Equilibrium Check (don't use site if p_hwe < 0.00001)
-    chiCritical = 19.5 # p = 0.00001 for 1 DOF
-
-    if nAA > nBB:
-        p = 1.0 - maf
-        q = maf        
-        expAA = p**2 * nTotal
-        expAB = 2 * p * q * nTotal
-        expBB = q**2 * nTotal
-
-    if nBB >= nAA:
-        p = 1.0 - maf
-        q = maf        
-        expAA = q**2 * nTotal
-        expAB = 2 * p * q * nTotal
-        expBB = p**2 * nTotal
-        
-    chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
-    if chiSquare > chiCritical:
-        excluded[3]+=1
-        continue
-    
     # Extract the mean and sd for each common allele homozygote clusters in the noise dimension
     meanXAA = egt.meanXAA[i]
     meanXBB = egt.meanXBB[i]
@@ -143,14 +102,62 @@ for i in range(numSNPs):
     elif nBB > nAA:
         out = [snp, meanX, meanY, devX, devY, nAA, nBB] # output array
     out = [str(o) for o in out]
+    output.append("\t".join(out))
 
-    print "\t".join(out)
+    # apply sanity checks and flag for exclusion if appropriate
 
-if verbose: 
-    sys.stderr.write("Exclusion summary\n")
-    for i in range(4):
-        sys.stderr.write(causes[i]+"\t"+str(excluded[i])+"\n")
-    sys.stderr.write("TOTAL\t"+str(sum(excluded))+"\n")
-    mean = sum(callRates)/float(len(callRates))
-    sys.stderr.write("MEAN_CR\t"+str(mean)+"\n")
+    # Calculate Missing Rate (ignore SNPs that have less than 99% call rate)
+    cr =  float(nTotal) / float(egt.numPoints)
+    callRates.append(cr)
+    if cr < 0.99:
+        exclude.add(i)
+        continue
+
+    # Make sure there are at least 10 points in each homozygote cluster
+    if nAA < 10 or nBB < 10:
+        exclude.add(i)
+        continue
     
+    # Calculate MAF
+    if nAA > nBB:
+        maf = (nAB + 2 * nBB) / float(2 * nTotal)
+    elif nAA <= nBB:
+        maf = (nAB + 2 * nAA) / float(2 * nTotal)
+
+    # MAF check ( >5% MAF)
+    if maf < 0.05:
+        exclude.add(i)
+        continue
+    
+    # Hardy-Weinberg Equilibrium Check (don't use site if p_hwe < 0.00001)
+    chiCritical = 19.5 # p = 0.00001 for 1 DOF
+
+    if nAA > nBB:
+        p = 1.0 - maf
+        q = maf        
+        expAA = p**2 * nTotal
+        expAB = 2 * p * q * nTotal
+        expBB = q**2 * nTotal
+
+    if nBB >= nAA:
+        p = 1.0 - maf
+        q = maf        
+        expAA = q**2 * nTotal
+        expAB = 2 * p * q * nTotal
+        expBB = p**2 * nTotal
+        
+    chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
+    if chiSquare > chiCritical:
+        exclude.add(i)
+        continue
+
+excludeRate = len(exclude)/float(numSNPs)
+if excludeRate <= maxExclusion:
+    for i in range(numSNPs):
+        if i not in exclude: print output[i]
+else:
+    msg = "Warning: findMeanSD exclusion rate of "+str(excludeRate)+\
+        " exceeds maximum of "+str(maxExclusion)+"; omitting SNP filter.\n"
+    sys.stderr.write(msg)
+    for i in range(numSNPs):
+        print output[i]

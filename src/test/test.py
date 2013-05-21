@@ -113,6 +113,7 @@ class TestScripts(unittest.TestCase):
         """
         index = json.loads(open(jsonPath).read())
         for z in index.keys():
+            #sys.stderr.write(index[z]+" "+str(self.getMD5hex(index[z]))+"\n")
             self.assertEqual(self.getMD5hex(index[z]), self.expectedT[z])
 
     def validatePlink(self, prefix, binary):
@@ -205,11 +206,12 @@ class TestScripts(unittest.TestCase):
 
     def test_mergeEvaluation(self):
         """Merge evaluation results and find best Z score"""
-        outPath = os.path.join(self.outDir, 'zEvaluation.json')
+        outPath = os.path.join(self.outDir, 'merged_evaluation.json')
         args = ['zcall/mergeEvaluation.py',
                 '--metrics', self.metricIndex,
                 '--thresholds', self.thresholdJson,
-                '--out', outPath ]
+                '--out', outPath,
+                '--text', os.path.join(self.outDir, 'metric_summary.txt'), ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script
         resultsNew = json.loads(open(outPath).read())
         oldPath = os.path.join(self.dataDir, 'zEvaluation.json')
@@ -217,7 +219,7 @@ class TestScripts(unittest.TestCase):
         for key in ('BEST_Z', 'SAMPLE_METRICS'):
             self.assertEqual(resultsOld[key], resultsNew[key])
         newT = resultsNew['BEST_THRESHOLDS'] # threshold.txt path
-        self.assertEqual(self.expectedT["7"], self.getMD5hex(newT))
+        self.assertEqual(self.expectedT["8"], self.getMD5hex(newT))
 
     def test_call_binary(self):
         """Re-call GTC files using zCall with binary output"""
@@ -238,13 +240,14 @@ class TestScripts(unittest.TestCase):
                 '--zstart', str(zstart),
                 '--ztotal', str(ztotal),
                 '--samples', self.sampleJson,
+                '--text', os.path.join(self.outDir, 'metric_summary.txt'),
                 '--plink', self.prefix,
                 '--binary'
                 ]
         self.assertEqual(os.system(' '.join(args)), 0)
         outStem = os.path.join(self.outDir, self.prefix)
         suffixes = ['.bed', '.bim', '.fam']
-        expected = ['ee6a6e8cb8c9a4c0cf2eb42eddc93304',
+        expected = ['8e222b46b0760cba5de1d2bded337c76',
                     '19dd8929cd63e3ee906e43b9bb59cd02',
                     'b836bd45459de6a9bc4b8d92e8c9e298']
         for i in range(len(suffixes)):

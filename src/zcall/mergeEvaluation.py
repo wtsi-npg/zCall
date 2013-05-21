@@ -43,6 +43,8 @@ from calibration import MetricEvaluator
 def main():
     """Method to run as script from command line.  Run with --help for usage."""
     description = "Evaluate concordance/gain results for multiple thresholds and samples; find the 'best' z score for subsequent use of zCall."
+    configDefault = os.path.join(sys.path[0], '../etc/config.ini')
+    configDefault = os.path.abspath(configDefault)
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--metrics', required=True, metavar="PATH", 
                         help="Path to .json file containing paths to .json metrics files")
@@ -51,11 +53,18 @@ def main():
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Path for .json output")
     parser.add_argument('--text', required=False, metavar="PATH", 
-                        help="Path for text file containing metric data, for input to R scripts. Optional.", default=None)
+                       help="Path for text summary of metrics. Optional.", 
+                       default=None)
+    parser.add_argument('--config', required=False, metavar="PATH", 
+                        help="Path to .ini config file. Optional, defaults to "+configDefault, default=configDefault)
     args = vars(parser.parse_args())
     metricPaths = json.loads(open(args['metrics']).read())
-    MetricEvaluator().writeBest(metricPaths, args['thresholds'], 
-                                args['out'], args['text'])
+    if not os.access(args['config'], os.R_OK):
+        raise ValueError("Cannot read .ini path "+args['config'])
+    
+
+    MetricEvaluator(args['config']).writeBest(metricPaths, args['thresholds'], 
+                                              args['out'], args['text'])
 
 if __name__ == "__main__":
     main()

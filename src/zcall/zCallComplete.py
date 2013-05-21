@@ -72,9 +72,10 @@ class ZCallComplete:
         eva.run(thresholds, gtc, start, end, outPath, verbose)
         return outPath
 
-    def merge(self, metricPath, thresholdJson, outDir, textPath, verbose):
+    def merge(self, metricPath, thresholdJson, outDir, textPath, config, 
+              verbose):
         outPath = os.path.join(outDir, self.MERGED)
-        eva = MetricEvaluator()
+        eva = MetricEvaluator(config)
         results = eva.writeBest([metricPath,], thresholdJson, outPath, 
                                 textPath, verbose)
         thresholdPath = results[eva.getBestThresholdKey()]
@@ -104,7 +105,8 @@ class ZCallComplete:
         thresholdPath = self.merge(mJson, 
                                    tJson, 
                                    self.args['out'], 
-                                   './mean_concordance_gain.txt',
+                                   self.args['text'], 
+                                   self.args['config'],
                                    self.args['verbose'])
         self.call(self.args['bpm'],
                   self.args['egt'],
@@ -151,6 +153,9 @@ def parseArgs():
                         help="Ending index in GTC .json file for threshold evaluation")
     parser.add_argument('--samples', required=True, metavar="PATH", 
                         help="Path to .json file containing sample URIs (unique identifiers), gender codes (optional), and .gtc data paths")
+    parser.add_argument('--text', required=False, metavar="PATH", 
+                       help="Path for text summary of calibration metrics. Optional.", 
+                       default=None)
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     args = vars(parser.parse_args())

@@ -131,35 +131,42 @@ class ThresholdFinder:
 class MetricEvaluator(SharedBase):
     """Class to assess concordance/gain metrics and choose best z score"""
     
-    def __init__(self):
-        pass
+    def __init__(self, configPath=None):
+        if configPath==None:
+            configPath = os.path.join(sys.path[0], '../etc/config.ini')
+            configPath = os.path.abspath(configPath)
+        config = ConfigParser()
+        config.readfp(open(configPath))
+        self.minConcord = float(config.get('zcall', 'min_concord'))
 
     def getBestThresholdKey(self):
         return self.T_KEY
 
     def findBestZ(self, concords, gains):
-        """Find best z score from mean concordance/gain values
+        """Find best z score from normalized mean concordance/gain values
 
-        The 'best' is defined as the smallest z s.t. mean concordance > mean gain; or if none exists, return z with minimum of gain - concordance.  Note that z keys in hash are strings, but need to sort them in integer order."""
-        concordanceGreaterThanGain = []
-        gainMinusConcord = {}
+        Normalize concordance/gain by dividing each value by the maximum. Optionally, set a minimum normalized concordance. The 'best' is defined as the smallest z s.t. (concordance > gain) AND (concordance > minimum); or if none exists, return z with maximum concordance.  Note that z keys in hash are strings (for use in .json output), but need to sort them in integer order."""
+        if concords.keys() != gains.keys():
+            raise ValueError("Concordance and gain inputs do not match")
+        cMax = max(concords.values())
+        gMax = max(gains.values())
+        zScores = []
         for z in concords.keys():
-            concord = concords[z]
-            gain = gains[z]
-            if concord > gain: concordanceGreaterThanGain.append(int(z))
-            gainMinusConcord[z] = gain - concord
+            concords[z] = concords[z]/cMax
+            gains[z] = gains[z]/gMax
+            zScores.append(int(z))
+        zScores.sort()
         best = None
-        bestType = 0
-        if len(concordanceGreaterThanGain)>0:
-            best = str(min(concordanceGreaterThanGain))
-        else:
-            leastDiff = min(gainMinusConcord.values())
-            for z in gainMinusConcord.keys():
-                if gainMinusConcord[z] == leastDiff:
-                    best = z
-                    bestType = 1
-                    break
-        return best
+        zMax = None
+        for i in range(len(zScores)):
+            z = str(zScores[i])
+            if concords[z] > gains[z] and concords[z] > self.minConcord:
+                best = z
+                break
+            elif concords[z]==1:
+                zMax = z
+        if best == None: best = zMax
+        return str(best)
 
     def findMeans(self, inPaths, verbose=False, outPath=None):
         """Read JSON result paths, find mean concordance/gain by z score
@@ -223,10 +230,12 @@ class MetricEvaluator(SharedBase):
 
     def writeMeanText(self, concords, gains, outPath, digits=6):
         """Write plain text file with mean concordance/gain by z score"""
-        zRange = concords.keys()
+        zRange = []
+        for z in concords.keys(): zRange.append(int(z))
         zRange.sort()
         output = []
-        for z in zRange:
+        for zScore in zRange:
+            z = str(zScore)
             concord = round(concords[z], digits)
             gain = round(gains[z], digits)
             output.append("%s\t%s\t%s\n" % (z, concord, gain) )
