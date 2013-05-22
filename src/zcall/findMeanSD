@@ -1,5 +1,31 @@
 #! /usr/bin/python
 
+
+# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Publication of the zCall algorithm:
+# Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, 
+# O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia 
+# Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, 
+# Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. 
+# zCall: a rare variant caller for array-based genotyping: Genetics and 
+# population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. 
+# Epub 2012 Jul 27. PubMed PMID: 22843986.
+
+
 # zCall: A Rare Variant Caller for Array-based Genotyping
 # Jackie Goldstein
 # jigold@broadinstitute.org
@@ -18,6 +44,7 @@ if options.egt == None:
     print "specify EGT file path with -E"
     sys.exit()
 
+
 ### Write header line
 head = ["SNP", "meanX", "meanY", "sdX", "sdY", "nMinorHom", "nCommonHom"] 
 print "\t".join(head) # Write header line
@@ -27,6 +54,15 @@ egt = EGT(options.egt)
 
 ## Iterate over each SNP in EGT object
 numSNPs = egt.numCodes ## number of SNPs in EGT file
+causes = ['CR', 'Min_cluster_size', 'MAF', 'HWE']
+excluded = [0]*4
+callRates = []
+
+# by default, apply 'sanity check' filter to SNPs
+exclude = set()
+output = []
+maxExclusion = 0.95
+
 for i in range(numSNPs):
 
     # Get SNP Name
@@ -38,45 +74,6 @@ for i in range(numSNPs):
     nBB = egt.nBB[i]
     nTotal = nAA + nAB + nBB
 
-    # Calculate Missing Rate (ignore SNPs that have less than 99% call rate)
-    if float(nTotal) / float(egt.numPoints) < 0.99:
-        continue
-
-    # Make sure there are at least 10 points in each homozygote cluster
-    if nAA < 10 or nBB < 10:
-        continue
-    
-    # Calculate MAF
-    if nAA > nBB:
-        maf = (nAB + 2 * nBB) / float(2 * nTotal)
-    elif nAA <= nBB:
-        maf = (nAB + 2 * nAA) / float(2 * nTotal)
-
-    # MAF check ( >5% MAF)
-    if maf < 0.05:
-        continue
-    
-    # Hardy-Weinberg Equilibrium Check (don't use site if p_hwe < 0.00001)
-    chiCritical = 19.5 # p = 0.00001 for 1 DOF
-
-    if nAA > nBB:
-        p = 1.0 - maf
-        q = maf        
-        expAA = p**2 * nTotal
-        expAB = 2 * p * q * nTotal
-        expBB = q**2 * nTotal
-
-    if nBB >= nAA:
-        p = 1.0 - maf
-        q = maf        
-        expAA = q**2 * nTotal
-        expAB = 2 * p * q * nTotal
-        expBB = p**2 * nTotal
-        
-    chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
-    if chiSquare > chiCritical:
-        continue
-    
     # Extract the mean and sd for each common allele homozygote clusters in the noise dimension
     meanXAA = egt.meanXAA[i]
     meanXBB = egt.meanXBB[i]
@@ -105,6 +102,62 @@ for i in range(numSNPs):
     elif nBB > nAA:
         out = [snp, meanX, meanY, devX, devY, nAA, nBB] # output array
     out = [str(o) for o in out]
+    output.append("\t".join(out))
 
-    print "\t".join(out)
+    # apply sanity checks and flag for exclusion if appropriate
 
+    # Calculate Missing Rate (ignore SNPs that have less than 99% call rate)
+    cr =  float(nTotal) / float(egt.numPoints)
+    callRates.append(cr)
+    if cr < 0.99:
+        exclude.add(i)
+        continue
+
+    # Make sure there are at least 10 points in each homozygote cluster
+    if nAA < 10 or nBB < 10:
+        exclude.add(i)
+        continue
+    
+    # Calculate MAF
+    if nAA > nBB:
+        maf = (nAB + 2 * nBB) / float(2 * nTotal)
+    elif nAA <= nBB:
+        maf = (nAB + 2 * nAA) / float(2 * nTotal)
+
+    # MAF check ( >5% MAF)
+    if maf < 0.05:
+        exclude.add(i)
+        continue
+    
+    # Hardy-Weinberg Equilibrium Check (don't use site if p_hwe < 0.00001)
+    chiCritical = 19.5 # p = 0.00001 for 1 DOF
+
+    if nAA > nBB:
+        p = 1.0 - maf
+        q = maf        
+        expAA = p**2 * nTotal
+        expAB = 2 * p * q * nTotal
+        expBB = q**2 * nTotal
+
+    if nBB >= nAA:
+        p = 1.0 - maf
+        q = maf        
+        expAA = q**2 * nTotal
+        expAB = 2 * p * q * nTotal
+        expBB = p**2 * nTotal
+        
+    chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
+    if chiSquare > chiCritical:
+        exclude.add(i)
+        continue
+
+excludeRate = len(exclude)/float(numSNPs)
+if excludeRate <= maxExclusion:
+    for i in range(numSNPs):
+        if i not in exclude: print output[i]
+else:
+    msg = "Warning: findMeanSD exclusion rate of "+str(excludeRate)+\
+        " exceeds maximum of "+str(maxExclusion)+"; omitting SNP filter.\n"
+    sys.stderr.write(msg)
+    for i in range(numSNPs):
+        print output[i]

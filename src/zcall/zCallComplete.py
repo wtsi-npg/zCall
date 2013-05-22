@@ -1,5 +1,32 @@
 #! /usr/bin/env python
 
+# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Publication of the zCall algorithm:
+# Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, 
+# O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia 
+# Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, 
+# Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. 
+# zCall: a rare variant caller for array-based genotyping: Genetics and 
+# population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. 
+# Epub 2012 Jul 27. PubMed PMID: 22843986.
+
+# Author: Iain Bancarz, ib5@sanger.ac.uk
+
+
 """Standalone, self-contained script to run the complete zcall process.
 
 zcall steps:
@@ -45,10 +72,12 @@ class ZCallComplete:
         eva.run(thresholds, gtc, start, end, outPath, verbose)
         return outPath
 
-    def merge(self, metricPath, thresholdJson, outDir, verbose):
+    def merge(self, metricPath, thresholdJson, outDir, textPath, config, 
+              verbose):
         outPath = os.path.join(outDir, self.MERGED)
-        eva = MetricEvaluator()
-        results = eva.writeBest([metricPath,], thresholdJson, outPath, verbose)
+        eva = MetricEvaluator(config)
+        results = eva.writeBest([metricPath,], thresholdJson, outPath, 
+                                textPath, verbose)
         thresholdPath = results[eva.getBestThresholdKey()]
         return thresholdPath
 
@@ -76,6 +105,8 @@ class ZCallComplete:
         thresholdPath = self.merge(mJson, 
                                    tJson, 
                                    self.args['out'], 
+                                   self.args['text'], 
+                                   self.args['config'],
                                    self.args['verbose'])
         self.call(self.args['bpm'],
                   self.args['egt'],
@@ -121,7 +152,10 @@ def parseArgs():
     parser.add_argument('--gtc_end', metavar="INT", default = -1,
                         help="Ending index in GTC .json file for threshold evaluation")
     parser.add_argument('--samples', required=True, metavar="PATH", 
-                        help="Path to .json file containing sample URIs (unique identifiers), gender codes, and .gtc data paths")
+                        help="Path to .json file containing sample URIs (unique identifiers), gender codes (optional), and .gtc data paths")
+    parser.add_argument('--text', required=False, metavar="PATH", 
+                       help="Path for text summary of calibration metrics. Optional.", 
+                       default=None)
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     args = vars(parser.parse_args())
