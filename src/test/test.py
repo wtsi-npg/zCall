@@ -1,5 +1,30 @@
 #! /usr/bin/env python
 
+# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Publication of the zCall algorithm:
+# Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, 
+# O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia 
+# Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, 
+# Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. 
+# zCall: a rare variant caller for array-based genotyping: Genetics and 
+# population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. 
+# Epub 2012 Jul 27. PubMed PMID: 22843986.
+
+# Author: Iain Bancarz, ib5@sanger.ac.uk
 
 """Unit tests for zcall module
 
@@ -88,6 +113,7 @@ class TestScripts(unittest.TestCase):
         """
         index = json.loads(open(jsonPath).read())
         for z in index.keys():
+            #sys.stderr.write(index[z]+" "+str(self.getMD5hex(index[z]))+"\n")
             self.assertEqual(self.getMD5hex(index[z]), self.expectedT[z])
 
     def validatePlink(self, prefix, binary):
@@ -180,11 +206,12 @@ class TestScripts(unittest.TestCase):
 
     def test_mergeEvaluation(self):
         """Merge evaluation results and find best Z score"""
-        outPath = os.path.join(self.outDir, 'zEvaluation.json')
+        outPath = os.path.join(self.outDir, 'merged_evaluation.json')
         args = ['zcall/mergeEvaluation.py',
                 '--metrics', self.metricIndex,
                 '--thresholds', self.thresholdJson,
-                '--out', outPath ]
+                '--out', outPath,
+                '--text', os.path.join(self.outDir, 'metric_summary.txt'), ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script
         resultsNew = json.loads(open(outPath).read())
         oldPath = os.path.join(self.dataDir, 'zEvaluation.json')
@@ -192,7 +219,7 @@ class TestScripts(unittest.TestCase):
         for key in ('BEST_Z', 'SAMPLE_METRICS'):
             self.assertEqual(resultsOld[key], resultsNew[key])
         newT = resultsNew['BEST_THRESHOLDS'] # threshold.txt path
-        self.assertEqual(self.expectedT["7"], self.getMD5hex(newT))
+        self.assertEqual(self.expectedT["8"], self.getMD5hex(newT))
 
     def test_call_binary(self):
         """Re-call GTC files using zCall with binary output"""
@@ -213,13 +240,14 @@ class TestScripts(unittest.TestCase):
                 '--zstart', str(zstart),
                 '--ztotal', str(ztotal),
                 '--samples', self.sampleJson,
+                '--text', os.path.join(self.outDir, 'metric_summary.txt'),
                 '--plink', self.prefix,
                 '--binary'
                 ]
         self.assertEqual(os.system(' '.join(args)), 0)
         outStem = os.path.join(self.outDir, self.prefix)
         suffixes = ['.bed', '.bim', '.fam']
-        expected = ['ee6a6e8cb8c9a4c0cf2eb42eddc93304',
+        expected = ['8e222b46b0760cba5de1d2bded337c76',
                     '19dd8929cd63e3ee906e43b9bb59cd02',
                     'b836bd45459de6a9bc4b8d92e8c9e298']
         for i in range(len(suffixes)):

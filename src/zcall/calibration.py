@@ -1,5 +1,31 @@
 #! /usr/bin/env python
 
+# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Publication of the zCall algorithm:
+# Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, 
+# O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia 
+# Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, 
+# Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. 
+# zCall: a rare variant caller for array-based genotyping: Genetics and 
+# population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. 
+# Epub 2012 Jul 27. PubMed PMID: 22843986.
+
+# Author: Iain Bancarz, ib5@sanger.ac.uk
+
 """Classes to find thresholds and evaluate z scores, as parameters for zCall.
 
 Threshold finding combines: findMeanSD.py, findBetas.r, findThresholds.py
@@ -105,35 +131,42 @@ class ThresholdFinder:
 class MetricEvaluator(SharedBase):
     """Class to assess concordance/gain metrics and choose best z score"""
     
-    def __init__(self):
-        pass
+    def __init__(self, configPath=None):
+        if configPath==None:
+            configPath = os.path.join(sys.path[0], '../etc/config.ini')
+            configPath = os.path.abspath(configPath)
+        config = ConfigParser()
+        config.readfp(open(configPath))
+        self.minConcord = float(config.get('zcall', 'min_concord'))
 
     def getBestThresholdKey(self):
         return self.T_KEY
 
     def findBestZ(self, concords, gains):
-        """Find best z score from mean concordance/gain values
+        """Find best z score from normalized mean concordance/gain values
 
-        The 'best' is defined as the smallest z s.t. mean concordance > mean gain; or if none exists, return z with minimum of gain - concordance.  Note that z keys in hash are strings, but need to sort them in integer order."""
-        concordanceGreaterThanGain = []
-        gainMinusConcord = {}
+        Normalize concordance/gain by dividing each value by the maximum. Optionally, set a minimum normalized concordance. The 'best' is defined as the smallest z s.t. (concordance > gain) AND (concordance > minimum); or if none exists, return z with maximum concordance.  Note that z keys in hash are strings (for use in .json output), but need to sort them in integer order."""
+        if concords.keys() != gains.keys():
+            raise ValueError("Concordance and gain inputs do not match")
+        cMax = max(concords.values())
+        gMax = max(gains.values())
+        zScores = []
         for z in concords.keys():
-            concord = concords[z]
-            gain = gains[z]
-            if concord > gain: concordanceGreaterThanGain.append(int(z))
-            gainMinusConcord[z] = gain - concord
+            concords[z] = concords[z]/cMax
+            gains[z] = gains[z]/gMax
+            zScores.append(int(z))
+        zScores.sort()
         best = None
-        bestType = 0
-        if len(concordanceGreaterThanGain)>0:
-            best = str(min(concordanceGreaterThanGain))
-        else:
-            leastDiff = min(gainMinusConcord.values())
-            for z in gainMinusConcord.keys():
-                if gainMinusConcord[z] == leastDiff:
-                    best = z
-                    bestType = 1
-                    break
-        return best
+        zMax = None
+        for i in range(len(zScores)):
+            z = str(zScores[i])
+            if concords[z] > gains[z] and concords[z] > self.minConcord:
+                best = z
+                break
+            elif concords[z]==1:
+                zMax = z
+        if best == None: best = zMax
+        return str(best)
 
     def findMeans(self, inPaths, verbose=False, outPath=None):
         """Read JSON result paths, find mean concordance/gain by z score
@@ -173,7 +206,8 @@ class MetricEvaluator(SharedBase):
             out.close()
         return (rows, concords, gains)
 
-    def writeBest(self, inPaths, thresholdPath, outPath, verbose=False):
+    def writeBest(self, inPaths, thresholdPath, outPath, textPath=None,
+                  verbose=False):
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
@@ -190,8 +224,24 @@ class MetricEvaluator(SharedBase):
         out = open(outPath, 'w')
         out.write(json.dumps(results))
         out.close()
+        if textPath!=None:
+            self.writeMeanText(concords, gains, textPath)
         return results
-        
+
+    def writeMeanText(self, concords, gains, outPath, digits=6):
+        """Write plain text file with mean concordance/gain by z score"""
+        zRange = []
+        for z in concords.keys(): zRange.append(int(z))
+        zRange.sort()
+        output = []
+        for zScore in zRange:
+            z = str(zScore)
+            concord = round(concords[z], digits)
+            gain = round(gains[z], digits)
+            output.append("%s\t%s\t%s\n" % (z, concord, gain) )
+        out = open(outPath, 'w')
+        out.write(''.join(output))
+        out.close()
 
 class MetricFinder(CallingBase):
     """Class to evaluate GTC objects by concordance and gain metrics
@@ -287,6 +337,8 @@ class SampleEvaluator(SharedBase):
         self.egtPath = egtPath
         self.bpm = BPM(bpmPath)
         self.metricFinder = MetricFinder(bpmPath, egtPath)
+        self.evaluated = 0 # running total of evaluated samples
+        self.sampleTotal = 0 # total number of samples to evaluate 
 
     def convertCountKeys(self, counts):
         """Convert keys in counts dictionary to string; required for JSON output
@@ -307,7 +359,10 @@ class SampleEvaluator(SharedBase):
         - GTC object
         """
         gtcName = os.path.split(gtc.getInputPath())[1]
-        if verbose: print "Evaluating z scores for sample", gtcName
+        self.evaluated += 1
+        if verbose: 
+            print "Evaluating z scores for sample "+str(self.evaluated)+\
+                " of "+str(self.sampleTotal)+": "+gtcName
         zList = thresholds.keys()
         zList.sort()
         results = {}
@@ -344,6 +399,7 @@ class SampleEvaluator(SharedBase):
         if verbose: print "Evaluating samples."
         output = []
         gtcPaths = self.readSampleJson(sampleJson)
+        self.evaluated = 0
         if end==-1: end = len(gtcPaths)
         if start>=end:
             raise ValueError("Must have GTC start index < end index")
@@ -351,6 +407,7 @@ class SampleEvaluator(SharedBase):
             raise ValueError("Must have GTC start index > 0")
         elif end > len(gtcPaths):
             raise ValueError("Must have GTC end index <= total GTC paths")
+        self.sampleTotal = end - start
         gtcPaths = gtcPaths[start:end]
         for gtcPath in gtcPaths:
             gtc = GTC(gtcPath, self.bpm.normID)
