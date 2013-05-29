@@ -40,7 +40,7 @@ or reuse of thresholds. It is intended as a convenience script for small
 datasets where parallelization is not required, and an illustration of the 
 zcall method.
 """
-import os, sys, time
+import cProfile, os, sys, time
 try: 
     import argparse, json
 except ImportError: 
@@ -121,7 +121,10 @@ class ZCallComplete:
 def main():
     args = parseArgs()
     start = time.time()
-    ZCallComplete(args).run()
+    if args['profile']==True:
+        cProfile.run('ZCallComplete('+str(args)+').run()')
+    else:
+        ZCallComplete(args).run()
     if args['verbose']==True:
         duration = time.time() - start
         print "zCall finished. Duration:", round(duration, 2), "seconds."
@@ -158,6 +161,8 @@ def parseArgs():
                        default=None)
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation")
     args = vars(parser.parse_args())
     inputKeys = ('bpm', 'egt', 'config')
     for key in inputKeys:

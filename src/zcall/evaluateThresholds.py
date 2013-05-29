@@ -31,7 +31,7 @@
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import os
+import cProfile, os
 from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
@@ -59,6 +59,8 @@ def main():
                         help="Ending index in GTC .json file")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation")
     args = vars(parser.parse_args())
     inputKeys = ['thresholds', 'bpm', 'egt', 'gtc']
     for key in inputKeys:
@@ -70,9 +72,16 @@ def main():
     if fileName=='' or not os.access(dirName, os.R_OK):
         raise OSError("Invalid output path \""+args['out']+"\"")
     
-    eva = SampleEvaluator(args['bpm'], args['egt'])
-    eva.run(args['thresholds'], args['gtc'], args['start'], 
-            args['end'], args['out'], args['verbose'])
+    if args['profile']==True:
+        cmd0 = "SampleEvaluator('%s', '%s')" % (args['bpm'], args['egt'])
+        args1 = (args['thresholds'], args['gtc'], args['start'], 
+                 args['end'], args['out'], args['verbose'])
+        cmd1 = ".run('%s', '%s', %s, %s, '%s', %s)" % args1
+        cProfile.run(cmd0+cmd1)
+    else:
+        eva = SampleEvaluator(args['bpm'], args['egt'])
+        eva.run(args['thresholds'], args['gtc'], args['start'], 
+                args['end'], args['out'], args['verbose'])
 
 if __name__ == "__main__":
     main()

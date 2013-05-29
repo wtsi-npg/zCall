@@ -33,7 +33,7 @@ Iain Bancarz, ib5@sanger.ac.uk
 January 2013
 """
 
-import os, sys, time
+import cProfile, os, sys, time
 try: 
     import argparse, json
     from calibration import ThresholdFinder
@@ -59,11 +59,18 @@ def main():
     if verbose: print "Starting prepareThresholds.py"
     egt = os.path.abspath(args['egt'])
     out = os.path.abspath(args['out'])
-    tf = ThresholdFinder(os.path.abspath(args['config']))
-    tf.runMultiple(args['zstart'], args['ztotal'], egt, out, verbose,
+    config = os.path.abspath(args['config'])
+    if args['profile']==True:
+        cmd = "ThresholdFinder('"+config+\
+            "').runMultiple(%s, %s, '%s', '%s', %s, %s)" % \
+            (args['zstart'], args['ztotal'], egt, out, verbose, args['force'])
+        cProfile.run(cmd)
+    else:
+        tf = ThresholdFinder(config)
+        tf.runMultiple(args['zstart'], args['ztotal'], egt, out, verbose,
                    args['force'])
-    duration = time.time() - start
-    if verbose: print "Finished. Duration:", round(duration, 1), "s"
+        duration = time.time() - start
+        if verbose: print "Finished. Duration:", round(duration, 1), "s"
     
 def validate_args():
     # parse command-line arguments and return dictionary of params
@@ -86,6 +93,8 @@ def validate_args():
                         help='Name for .json index file with paths to thresholds.txt output, written to output directory')
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation")
     parser.add_argument('--force', action='store_true', default=False,
                         help="Force overwrite of existing threshold files (if any)")
     args = vars(parser.parse_args())

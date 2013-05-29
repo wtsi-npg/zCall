@@ -28,7 +28,7 @@
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
 
-import os, struct
+import cProfile, os, struct
 from GTC import *
 try: 
     import argparse, json
@@ -135,6 +135,8 @@ def main():
                         help="Path for .json log output. Defaults to [plink prefix]_log.json in same directory as Plink output.")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation")
     parser.add_argument('--null', action='store_true', default=False,
                         help="Do not apply zcall. Instead output GTC calls unchanged to an individual-major Plink binary file. Used for testing.")
     args = vars(parser.parse_args())
@@ -155,9 +157,17 @@ def main():
         args['log'] = os.path.abspath(args['log'])
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
-    caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
-    caller.run(args['samples'], args['out'], args['plink'], args['log'],
-               args['binary'], args['verbose'], args['null'])
+    if args['profile']==True:
+        arg0 = (args['bpm'], args['egt'], args['thresholds'])
+        arg1 = (args['samples'], args['out'], args['plink'], args['log'],
+                args['binary'], args['verbose'], args['null'])
+        call = ("SampleCaller('%s', '%s', '%s')." % arg0)+\
+            ("run('%s', '%s', '%s', '%s', %s, %s, %s)" % arg1)
+        cProfile.run(call)           
+    else:
+        caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
+        caller.run(args['samples'], args['out'], args['plink'], args['log'],
+                   args['binary'], args['verbose'], args['null'])
 
 if __name__ == "__main__":
     main()
