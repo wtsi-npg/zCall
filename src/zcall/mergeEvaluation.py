@@ -32,12 +32,13 @@ Use to find 'best' z score for calling.
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import os, sys
+import os, pyximport, sys
 try: 
     import argparse, json
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
+pyximport.install()
 from calibration import MetricEvaluator
 
 def main():
@@ -57,14 +58,22 @@ def main():
                        default=None)
     parser.add_argument('--config', required=False, metavar="PATH", 
                         help="Path to .ini config file. Optional, defaults to "+configDefault, default=configDefault)
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Write cProfile runtime profile stats to output directory. Profile output can be read with 'python -m pstats PATH'")
     args = vars(parser.parse_args())
     metricPaths = json.loads(open(args['metrics']).read())
     if not os.access(args['config'], os.R_OK):
-        raise ValueError("Cannot read .ini path "+args['config'])
-    
-
-    MetricEvaluator(args['config']).writeBest(metricPaths, args['thresholds'], 
-                                              args['out'], args['text'])
+        raise ValueError("Cannot read .ini path "+args['config'])    
+    if args['profile']==True:
+        pstats = os.path.join(os.path.dirname(args['out']), 
+                              'mergeEvaluation.pstats')
+        cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % \
+            (args['config'], 'metricPaths', args['thresholds'], 
+             args['out'], args['text'])
+    else:
+        MetricEvaluator(args['config']).writeBest(metricPaths, 
+                                                  args['thresholds'], 
+                                                  args['out'], args['text'])
 
 if __name__ == "__main__":
     main()
