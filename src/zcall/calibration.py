@@ -79,96 +79,29 @@ class ThresholdFinder:
     def findMeanSD(self, outPath):
         """Find cluster mean/sd from EGT object
 
-        Based on findMeanSD script in original zcall implementation"""
-        # by default, apply 'sanity check' filter to SNPs
+        Based on findMeanSD script in original zcall implementation
+        By default, apply 'sanity check' filter to SNPs"""
         exclude = set()
-        output = []
+        output = [None]*self.snpTotal
         maxExclusion = 0.95
         for i in range(self.snpTotal):
             # Get SNP Name
             snp = self.egt.names[i]
-    
             # Get number of points in each genotype cluster
             nAA = self.egt.nAA[i]
             nAB = self.egt.nAB[i]
             nBB = self.egt.nBB[i]
             nTotal = nAA + nAB + nBB
-
-            # Extract the mean and sd for each common allele homozygote clusters in the noise dimension
-            meanXAA = self.egt.meanXAA[i]
-            meanXBB = self.egt.meanXBB[i]
-            devXAA = self.egt.devXAA[i]
-            devXBB = self.egt.devXBB[i]
-
-            meanYAA = self.egt.meanYAA[i]
-            meanYBB = self.egt.meanYBB[i]
-            devYAA = self.egt.devYAA[i]
-            devYBB = self.egt.devYBB[i]
-
-            if meanXAA >= meanYAA: ## AA is in the lower right quadrant
-                meanY = meanYAA
-                devY = devYAA
-                meanX = meanXBB
-                devX = devXBB
-                
-            elif meanXAA < meanYAA: ## AA is in the upper left quadrant; however, this should never be the case by definition X -> A, Y -> B
-                meanY = meanYBB
-                devY = devYBB
-                meanX = meanXAA
-                devX = devXAA
-
+            (meanX, meanY, devX, devY) = self.meanDevXY(i)
             if nAA >= nBB:
-                out = [snp, meanX, meanY, devX, devY, nBB, nAA] # output array
+                out = [snp, meanX, meanY, devX, devY, nBB, nAA] 
             elif nBB > nAA:
-                out = [snp, meanX, meanY, devX, devY, nAA, nBB] # output array
+                out = [snp, meanX, meanY, devX, devY, nAA, nBB] 
             out = [str(o) for o in out]
-            output.append("\t".join(out))
-
+            output[i] = "\t".join(out)
             # apply sanity checks and flag for exclusion if appropriate
-
-            #Calculate Missing Rate (ignore SNPs that have < 99% call rate)
-            cr =  float(nTotal) / float(self.egt.numPoints)
-            if cr < 0.99:
+            if not self.snpSanityCheckOK(nAA, nAB, nBB, nTotal):
                 exclude.add(i)
-                continue
-
-            # Make sure there are at least 10 points in each homozygote cluster
-            if nAA < 10 or nBB < 10:
-                exclude.add(i)
-                continue
-    
-            # Calculate MAF
-            if nAA > nBB:
-                maf = (nAB + 2 * nBB) / float(2 * nTotal)
-            elif nAA <= nBB:
-                maf = (nAB + 2 * nAA) / float(2 * nTotal)
-
-            # MAF check ( >5% MAF)
-            if maf < 0.05:
-                exclude.add(i)
-                continue
-
-            # Hardy-Weinberg Equilibrium (don't use site if p_hwe < 0.00001)
-            chiCritical = 19.5 # p = 0.00001 for 1 DOF
-
-            if nAA > nBB:
-                p = 1.0 - maf
-                q = maf        
-                expAA = p**2 * nTotal
-                expAB = 2 * p * q * nTotal
-                expBB = q**2 * nTotal
-            else:
-                p = 1.0 - maf
-                q = maf        
-                expAA = q**2 * nTotal
-                expAB = 2 * p * q * nTotal
-                expBB = p**2 * nTotal
-        
-            chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
-            if chiSquare > chiCritical:
-                exclude.add(i)
-                continue
-
         excludeRate = len(exclude)/float(self.snpTotal)
         head = ["SNP", "meanX", "meanY", "sdX", "sdY", 
                 "nMinorHom", "nCommonHom"] 
@@ -250,6 +183,65 @@ class ThresholdFinder:
         if Tx!="NA": Tx = round(Tx, self.digits)
         if Ty!="NA": Ty = round(Ty, self.digits)
         return (Tx, Ty)
+
+    def meanDevXY(self, i):
+        """Find mean/sd for x,y for given snp"""
+        # Extract the mean and sd for each common allele homozygote clusters in the noise dimension
+        meanXAA = self.egt.meanXAA[i]
+        meanXBB = self.egt.meanXBB[i]
+        devXAA = self.egt.devXAA[i]
+        devXBB = self.egt.devXBB[i]
+        meanYAA = self.egt.meanYAA[i]
+        meanYBB = self.egt.meanYBB[i]
+        devYAA = self.egt.devYAA[i]
+        devYBB = self.egt.devYBB[i]
+        if meanXAA >= meanYAA: ## AA is in the lower right quadrant
+            meanY = meanYAA
+            devY = devYAA
+            meanX = meanXBB
+            devX = devXBB                
+        else: ## AA is in the upper left quadrant; however, this should never be the case by definition X -> A, Y -> B
+            meanY = meanYBB
+            devY = devYBB
+            meanX = meanXAA
+            devX = devXAA
+        return (meanX, meanY, devX, devY)
+            
+    def snpSanityCheckOK(self, nAA, nAB, nBB, nTotal):
+        """Apply sanity checks to SNPs for inclusion in mean/SD calculation"""
+        cr =  float(nTotal) / float(self.egt.numPoints)
+        if cr < 0.99:
+            return False
+        # Make sure there are at least 10 points in each homozygote cluster
+        if nAA < 10 or nBB < 10:
+            return False
+        # Calculate and check MAF
+        if nAA > nBB:
+            maf = (nAB + 2 * nBB) / float(2 * nTotal)
+        else:
+            maf = (nAB + 2 * nAA) / float(2 * nTotal)
+        if maf < 0.05:
+            return False
+        # Hardy-Weinberg Equilibrium (don't use site if p_hwe < 0.00001)
+        chiCritical = 19.5 # p = 0.00001 for 1 DOF
+        if nAA > nBB:
+            p = 1.0 - maf
+            q = maf        
+            expAA = p**2 * nTotal
+            expAB = 2 * p * q * nTotal
+            expBB = q**2 * nTotal
+        else:
+            p = 1.0 - maf
+            q = maf        
+            expAA = q**2 * nTotal
+            expAB = 2 * p * q * nTotal
+            expBB = p**2 * nTotal
+        chiSquare = ((nAA - expAA)**2 / float(expAA)) + \
+            ((nAB - expAB)**2 / float(expAB)) + \
+            ((nBB - expBB)**2 / float(expBB))
+        if chiSquare > chiCritical:
+            return False
+        return True
 
     def thresholdFileName(self, zScore):
         egtName = re.split('/', self.egtPath).pop()
