@@ -113,7 +113,6 @@ class TestScripts(unittest.TestCase):
         """
         index = json.loads(open(jsonPath).read())
         for z in index.keys():
-            #sys.stderr.write(index[z]+" "+str(self.getMD5hex(index[z]))+"\n")
             self.assertEqual(self.getMD5hex(index[z]), self.expectedT[z])
 
     def validatePlink(self, prefix, binary):
