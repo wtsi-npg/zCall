@@ -83,8 +83,8 @@ class ZCallComplete:
 
     def prepare(self, zstart, ztotal, egtPath, outDir, config, verbose=False):
         """ Prepare threshold.txt files for given range of z scores"""
-        tf = ThresholdFinder(config)
-        return tf.runMultiple(zstart, ztotal, egtPath, outDir, verbose)
+        tf = ThresholdFinder(egtPath, config)
+        return tf.runMultiple(zstart, ztotal, outDir, verbose)
         
 
     def run(self):

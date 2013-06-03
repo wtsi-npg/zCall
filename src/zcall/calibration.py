@@ -64,7 +64,9 @@ class ThresholdFinder:
  
     INDEX_NAME = "thresholds.json"
 
-    def __init__(self, configPath=None):
+    def __init__(self, egtPath, configPath=None):
+        self.egtPath = egtPath
+        self.egt = EGT(egtPath)
         if configPath==None:
             configPath = os.path.join(sys.path[0], '../etc/config.ini')
             configPath = os.path.abspath(configPath)
@@ -73,15 +75,128 @@ class ThresholdFinder:
         self.rScript = config.get('zcall', 'rscript')
         self.digits = int(config.get('zcall', 'digits'))
 
-    def thresholdFileName(self, egtPath, zScore):
-        egtName = re.split('/', egtPath).pop()
+    def findMeanSD(self, outPath):
+        """Find cluster mean/sd from EGT object
+
+        Based on findMeanSD script in original zcall implementation"""
+        ## TODO split this into two or more methods
+        egt = self.egt
+        numSNPs = egt.getTotalSNPs()
+        # by default, apply 'sanity check' filter to SNPs
+        exclude = set()
+        output = []
+        maxExclusion = 0.95
+        for i in range(numSNPs):
+            # Get SNP Name
+            snp = egt.names[i]
+    
+            # Get number of points in each genotype cluster
+            nAA = egt.nAA[i]
+            nAB = egt.nAB[i]
+            nBB = egt.nBB[i]
+            nTotal = nAA + nAB + nBB
+
+            # Extract the mean and sd for each common allele homozygote clusters in the noise dimension
+            meanXAA = egt.meanXAA[i]
+            meanXBB = egt.meanXBB[i]
+            devXAA = egt.devXAA[i]
+            devXBB = egt.devXBB[i]
+
+            meanYAA = egt.meanYAA[i]
+            meanYBB = egt.meanYBB[i]
+            devYAA = egt.devYAA[i]
+            devYBB = egt.devYBB[i]
+
+            if meanXAA >= meanYAA: ## AA is in the lower right quadrant
+                meanY = meanYAA
+                devY = devYAA
+                meanX = meanXBB
+                devX = devXBB
+                
+            elif meanXAA < meanYAA: ## AA is in the upper left quadrant; however, this should never be the case by definition X -> A, Y -> B
+                meanY = meanYBB
+                devY = devYBB
+                meanX = meanXAA
+                devX = devXAA
+
+            if nAA >= nBB:
+                out = [snp, meanX, meanY, devX, devY, nBB, nAA] # output array
+            elif nBB > nAA:
+                out = [snp, meanX, meanY, devX, devY, nAA, nBB] # output array
+            out = [str(o) for o in out]
+            output.append("\t".join(out))
+
+            # apply sanity checks and flag for exclusion if appropriate
+
+            #Calculate Missing Rate (ignore SNPs that have < 99% call rate)
+            cr =  float(nTotal) / float(egt.numPoints)
+            if cr < 0.99:
+                exclude.add(i)
+                continue
+
+            # Make sure there are at least 10 points in each homozygote cluster
+            if nAA < 10 or nBB < 10:
+                exclude.add(i)
+                continue
+    
+            # Calculate MAF
+            if nAA > nBB:
+                maf = (nAB + 2 * nBB) / float(2 * nTotal)
+            elif nAA <= nBB:
+                maf = (nAB + 2 * nAA) / float(2 * nTotal)
+
+            # MAF check ( >5% MAF)
+            if maf < 0.05:
+                exclude.add(i)
+                continue
+
+            # Hardy-Weinberg Equilibrium (don't use site if p_hwe < 0.00001)
+            chiCritical = 19.5 # p = 0.00001 for 1 DOF
+
+            if nAA > nBB:
+                p = 1.0 - maf
+                q = maf        
+                expAA = p**2 * nTotal
+                expAB = 2 * p * q * nTotal
+                expBB = q**2 * nTotal
+            else:
+                p = 1.0 - maf
+                q = maf        
+                expAA = q**2 * nTotal
+                expAB = 2 * p * q * nTotal
+                expBB = p**2 * nTotal
+        
+            chiSquare = ((nAA - expAA)**2 / float(expAA)) + ((nAB - expAB)**2 / float(expAB)) + ((nBB - expBB)**2 / float(expBB))
+            if chiSquare > chiCritical:
+                exclude.add(i)
+                continue
+
+        excludeRate = len(exclude)/float(numSNPs)
+        head = ["SNP", "meanX", "meanY", "sdX", "sdY", 
+                "nMinorHom", "nCommonHom"] 
+        outFile = open(outPath, 'w')
+        outFile.write("\t".join(head)+"\n")
+        if excludeRate <= maxExclusion:
+            for i in range(numSNPs):
+                if i not in exclude: outFile.write(output[i]+"\n")
+        else:
+            msg = "Warning: findMeanSD exclusion rate of "+str(excludeRate)+\
+                " exceeds maximum of "+str(maxExclusion)+\
+                "; omitting SNP filter.\n"
+            sys.stderr.write(msg)
+            for i in range(numSNPs):
+                outFile.write(output[i]+"\n")
+        outFile.close()
+
+    def thresholdFileName(self, zScore):
+        egtName = re.split('/', self.egtPath).pop()
         items = re.split('\.', egtName)
         items.pop() # remove .egt suffix
         name = '.'.join(items)
         return 'thresholds_'+name+'_z'+str(zScore).zfill(2)+'.txt'
 
-    def run(self, egtPath, zScore=7, outDir='/tmp', verbose=True, force=False):
-        outPath = os.path.join(outDir, self.thresholdFileName(egtPath, zScore))
+    def run(self, zScore=7, outDir='/tmp', verbose=True, force=False):
+        outPath = os.path.join(outDir, self.thresholdFileName(zScore))
         if os.path.exists(outPath) and force==False:
             if verbose: print outPath+" already exists; omitting calibration."
             return outPath
@@ -93,10 +208,11 @@ class ThresholdFinder:
             print msg
         meanSd = tempDir+'/mean_sd.txt'
         betas = tempDir+'/betas.txt'
-        cmdList = [scriptDir+'/findMeanSD -E '+egtPath+' > '+meanSd,
+        self.findMeanSD(meanSd)
+        cmdList = [#scriptDir+'/findMeanSD -E '+egtPath+' > '+meanSd,
                    'bash -c "'+self.rScript+' '+scriptDir+'/findBetas.r '+\
                        meanSd+' '+betas+' 1 " &> '+tempDir+'/rscript.log',
-                   scriptDir+'/findThresholds -B '+betas+' -E '+egtPath+\
+                   scriptDir+'/findThresholds -B '+betas+' -E '+self.egtPath+\
                        ' -Z '+str(zScore)+' -D '+str(self.digits)+\
                        ' > '+outPath,
                    ] # findBetas.r command uses bash to redirect stderr
@@ -114,12 +230,12 @@ class ThresholdFinder:
         if verbose: print "Finished calibration."
         return outPath
 
-    def runMultiple(self, zstart, ztotal, egtPath, outDir, 
+    def runMultiple(self, zstart, ztotal, outDir, 
                     verbose=True, force=False):
         z = zstart
         thresholdPaths = {}
         for i in range(ztotal):
-            thresholdPath = self.run(egtPath, z, outDir, verbose, force)
+            thresholdPath = self.run(z, outDir, verbose, force)
             thresholdPaths[str(z)] = thresholdPath # .json needs string as key
             z += 1
         indexPath = os.path.join(outDir, self.INDEX_NAME)

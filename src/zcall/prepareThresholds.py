@@ -61,13 +61,13 @@ def main():
     out = os.path.abspath(args['out'])
     config = os.path.abspath(args['config'])
     if args['profile']==True:
-        cmd = "ThresholdFinder('"+config+\
+        cmd = "ThresholdFinder('"+egt+"', '"+config+\
             "').runMultiple(%s, %s, '%s', '%s', %s, %s)" % \
-            (args['zstart'], args['ztotal'], egt, out, verbose, args['force'])
+            (args['zstart'], args['ztotal'], out, verbose, args['force'])
         cProfile.run(cmd)
     else:
-        tf = ThresholdFinder(config)
-        tf.runMultiple(args['zstart'], args['ztotal'], egt, out, verbose,
+        tf = ThresholdFinder(egt, config)
+        tf.runMultiple(args['zstart'], args['ztotal'], out, verbose,
                    args['force'])
         duration = time.time() - start
         if verbose: print "Finished. Duration:", round(duration, 1), "s"
