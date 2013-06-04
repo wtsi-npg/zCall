@@ -67,9 +67,10 @@ def main():
     if args['profile']==True:
         pstats = os.path.join(os.path.dirname(args['out']), 
                               'mergeEvaluation.pstats')
-        cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % \
-            (args['config'], 'metricPaths', args['thresholds'], 
-             args['out'], args['text'])
+        cargs = (args['config'], 'metricPaths', args['thresholds'], 
+                   args['out'], args['text'])
+        cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % cargs
+        cProfile.run(cmd, pstats)
     else:
         MetricEvaluator(args['config']).writeBest(metricPaths, 
                                                   args['thresholds'], 

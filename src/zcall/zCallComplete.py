@@ -122,7 +122,8 @@ def main():
     args = parseArgs()
     start = time.time()
     if args['profile']==True:
-        cProfile.run('ZCallComplete('+str(args)+').run()')
+        pstats = os.path.join(args['out'], 'zCallComplete.pstats')
+        cProfile.run('ZCallComplete('+str(args)+').run()', pstats)
     else:
         ZCallComplete(args).run()
     if args['verbose']==True:

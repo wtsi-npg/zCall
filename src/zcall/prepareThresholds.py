@@ -61,10 +61,11 @@ def main():
     out = os.path.abspath(args['out'])
     config = os.path.abspath(args['config'])
     if args['profile']==True:
+        pstats = os.path.join(out, 'prepareThresholds.pstats')
         cmd = "ThresholdFinder('"+egt+"', '"+config+\
             "').runMultiple(%s, %s, '%s', %s, %s)" % \
             (args['zstart'], args['ztotal'], out, verbose, args['force'])
-        cProfile.run(cmd)
+        cProfile.run(cmd, pstats)
     else:
         tf = ThresholdFinder(egt, config)
         tf.runMultiple(args['zstart'], args['ztotal'], out, verbose,

@@ -158,12 +158,13 @@ def main():
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
     if args['profile']==True:
+        pstats = os.path.join(os.path.dirname(args['out']), 'runZCall.pstats')
         arg0 = (args['bpm'], args['egt'], args['thresholds'])
         arg1 = (args['samples'], args['out'], args['plink'], args['log'],
                 args['binary'], args['verbose'], args['null'])
         call = ("SampleCaller('%s', '%s', '%s')." % arg0)+\
             ("run('%s', '%s', '%s', '%s', %s, %s, %s)" % arg1)
-        cProfile.run(call)           
+        cProfile.run(call, pstats)           
     else:
         caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
         caller.run(args['samples'], args['out'], args['plink'], args['log'],

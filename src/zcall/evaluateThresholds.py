@@ -73,11 +73,13 @@ def main():
         raise OSError("Invalid output path \""+args['out']+"\"")
     
     if args['profile']==True:
+        pstats = os.path.join(os.path.dirname(args['out']),
+                              'evaluateThresholds.pstats')
         cmd0 = "SampleEvaluator('%s', '%s')" % (args['bpm'], args['egt'])
         args1 = (args['thresholds'], args['gtc'], args['start'], 
                  args['end'], args['out'], args['verbose'])
         cmd1 = ".run('%s', '%s', %s, %s, '%s', %s)" % args1
-        cProfile.run(cmd0+cmd1)
+        cProfile.run(cmd0+cmd1, pstats)
     else:
         eva = SampleEvaluator(args['bpm'], args['egt'])
         eva.run(args['thresholds'], args['gtc'], args['start'], 
