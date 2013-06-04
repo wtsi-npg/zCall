@@ -62,7 +62,7 @@ def main():
     config = os.path.abspath(args['config'])
     if args['profile']==True:
         cmd = "ThresholdFinder('"+egt+"', '"+config+\
-            "').runMultiple(%s, %s, '%s', '%s', %s, %s)" % \
+            "').runMultiple(%s, %s, '%s', %s, %s)" % \
             (args['zstart'], args['ztotal'], out, verbose, args['force'])
         cProfile.run(cmd)
     else:
