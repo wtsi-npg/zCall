@@ -43,6 +43,7 @@ zcall method.
 import cProfile, os, sys, time
 try: 
     import argparse, json
+    from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -122,7 +123,9 @@ def main():
     args = parseArgs()
     start = time.time()
     if args['profile']==True:
-        pstats = os.path.join(args['out'], 'zCallComplete.pstats')
+        pstats = NamedTemporaryFile(prefix="zCallComplete_",
+                                    suffix=".pstats", 
+                                    dir=args['out'], delete=False).name
         cProfile.run('ZCallComplete('+str(args)+').run()', pstats)
     else:
         ZCallComplete(args).run()

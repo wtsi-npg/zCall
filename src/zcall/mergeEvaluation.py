@@ -35,6 +35,7 @@ Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 import os, pyximport, sys
 try: 
     import argparse, json
+    from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -65,8 +66,9 @@ def main():
     if not os.access(args['config'], os.R_OK):
         raise ValueError("Cannot read .ini path "+args['config'])    
     if args['profile']==True:
-        pstats = os.path.join(os.path.dirname(args['out']), 
-                              'mergeEvaluation.pstats')
+        pstats = NamedTemporaryFile(prefix="mergeEvaluation_", 
+                                    suffix=".pstats", 
+                                    dir=args['out'], delete=False).name
         cargs = (args['config'], 'metricPaths', args['thresholds'], 
                    args['out'], args['text'])
         cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % cargs

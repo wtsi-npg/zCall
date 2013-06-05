@@ -37,6 +37,7 @@ import cProfile, os, sys, time
 try: 
     import argparse, json
     from calibration import ThresholdFinder
+    from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -61,7 +62,9 @@ def main():
     out = os.path.abspath(args['out'])
     config = os.path.abspath(args['config'])
     if args['profile']==True:
-        pstats = os.path.join(out, 'prepareThresholds.pstats')
+        pstats = NamedTemporaryFile(prefix="prepareThresholds_", 
+                                    suffix=".pstats", 
+                                    dir=out, delete=False).name
         cmd = "ThresholdFinder('"+egt+"', '"+config+\
             "').runMultiple(%s, %s, '%s', %s, %s)" % \
             (args['zstart'], args['ztotal'], out, verbose, args['force'])

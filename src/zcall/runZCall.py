@@ -35,6 +35,7 @@ try:
     from calibration import ThresholdFinder
     from utilities import CallingBase, ThresholdContainer
     from plink import PlinkHandler
+    from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -158,7 +159,8 @@ def main():
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
     if args['profile']==True:
-        pstats = os.path.join(os.path.dirname(args['out']), 'runZCall.pstats')
+        pstats = NamedTemporaryFile(prefix="runZCall_", suffix=".pstats", 
+                                    dir=args['out'], delete=False).name
         arg0 = (args['bpm'], args['egt'], args['thresholds'])
         arg1 = (args['samples'], args['out'], args['plink'], args['log'],
                 args['binary'], args['verbose'], args['null'])

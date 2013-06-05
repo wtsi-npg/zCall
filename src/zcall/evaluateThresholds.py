@@ -35,6 +35,7 @@ import cProfile, os
 from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
+    from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -73,8 +74,9 @@ def main():
         raise OSError("Invalid output path \""+args['out']+"\"")
     
     if args['profile']==True:
-        pstats = os.path.join(os.path.dirname(args['out']),
-                              'evaluateThresholds.pstats')
+        pstats = NamedTemporaryFile(prefix="evaluateThresholds_", 
+                                    suffix=".pstats", 
+                                    dir=args['out'], delete=False).name
         cmd0 = "SampleEvaluator('%s', '%s')" % (args['bpm'], args['egt'])
         args1 = (args['thresholds'], args['gtc'], args['start'], 
                  args['end'], args['out'], args['verbose'])
