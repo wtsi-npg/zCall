@@ -28,12 +28,12 @@
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
 
-import cProfile, os, struct
+import cProfile, os, struct, sys
 from GTC import *
 try: 
     import argparse, json
     from calibration import ThresholdFinder
-    from utilities import CallingBase, ThresholdContainer
+    from utilities import CallingBase, ThresholdContainer, ConfigReader
     from plink import PlinkHandler
     from tempfile import NamedTemporaryFile
 except ImportError: 
@@ -137,7 +137,11 @@ def main():
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Use cProfile to profile runtime operation")
+                        help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
+    configDefault = os.path.join(sys.path[0], '../etc/config.ini')
+    configDefault = os.path.abspath(configDefault)
+    parser.add_argument('--config', metavar="PATH", default=configDefault,
+                        help="Path to .ini config file. Default = etc/config.ini")
     parser.add_argument('--null', action='store_true', default=False,
                         help="Do not apply zcall. Instead output GTC calls unchanged to an individual-major Plink binary file. Used for testing.")
     args = vars(parser.parse_args())
@@ -158,7 +162,8 @@ def main():
         args['log'] = os.path.abspath(args['log'])
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
-    if args['profile']==True:
+    cp = ConfigReader(args['config']).getParser()
+    if args['profile'] or  cp.has_option('zcall', 'profile'):
         pstats = NamedTemporaryFile(prefix="runZCall_", suffix=".pstats", 
                                     dir=args['out'], delete=False).name
         arg0 = (args['bpm'], args['egt'], args['thresholds'])

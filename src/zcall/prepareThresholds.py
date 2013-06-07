@@ -36,8 +36,9 @@ January 2013
 import cProfile, os, sys, time
 try: 
     import argparse, json
-    from calibration import ThresholdFinder
     from tempfile import NamedTemporaryFile
+    from calibration import ThresholdFinder
+    from utilities import ConfigReader
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -61,7 +62,8 @@ def main():
     egt = os.path.abspath(args['egt'])
     out = os.path.abspath(args['out'])
     config = os.path.abspath(args['config'])
-    if args['profile']==True:
+    cp = ConfigReader(config).getParser()
+    if args['profile'] or cp.has_option('zcall', 'profile'):
         pstats = NamedTemporaryFile(prefix="prepareThresholds_", 
                                     suffix=".pstats", 
                                     dir=out, delete=False).name
@@ -98,7 +100,7 @@ def validate_args():
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Use cProfile to profile runtime operation")
+                        help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
     parser.add_argument('--force', action='store_true', default=False,
                         help="Force overwrite of existing threshold files (if any)")
     args = vars(parser.parse_args())

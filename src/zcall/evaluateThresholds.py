@@ -31,11 +31,12 @@
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import cProfile, os
+import cProfile, os, sys
 from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
     from tempfile import NamedTemporaryFile
+    from utilities import ConfigReader
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -61,7 +62,11 @@ def main():
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Use cProfile to profile runtime operation")
+                        help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
+    configDefault = os.path.join(sys.path[0], '../etc/config.ini')
+    configDefault = os.path.abspath(configDefault)
+    parser.add_argument('--config', metavar="PATH", default=configDefault,
+                        help="Path to .ini config file. Default = etc/config.ini")
     args = vars(parser.parse_args())
     inputKeys = ['thresholds', 'bpm', 'egt', 'gtc']
     for key in inputKeys:
@@ -72,11 +77,12 @@ def main():
     (dirName, fileName) = os.path.split(os.path.abspath(args['out']))
     if fileName=='' or not os.access(dirName, os.R_OK):
         raise OSError("Invalid output path \""+args['out']+"\"")
-    
-    if args['profile']==True:
+    cp = ConfigReader(os.path.abspath(args['config'])).getParser()
+    if args['profile'] or cp.has_option('zcall', 'profile'):
         pstats = NamedTemporaryFile(prefix="evaluateThresholds_", 
                                     suffix=".pstats", 
-                                    dir=args['out'], delete=False).name
+                                    dir=os.path.dirname(args['out']), 
+                                    delete=False).name
         cmd0 = "SampleEvaluator('%s', '%s')" % (args['bpm'], args['egt'])
         args1 = (args['thresholds'], args['gtc'], args['start'], 
                  args['end'], args['out'], args['verbose'])

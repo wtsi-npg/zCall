@@ -27,6 +27,7 @@
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
 import json
+from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
 from EGT import *
@@ -110,6 +111,18 @@ class CallingBase(SharedBase):
     def setThresholds(self, thresholds):
         """Set thresholds to given ThresholdContainer object"""
         self.thresholds = thresholds
+
+class ConfigReader:
+    """Convenience wrapper for the ConfigParser class to read .ini files"""
+
+    def __init__(self, configPath):
+        configFile = open(configPath, 'r')
+        self.cp = ConfigParser()
+        self.cp.readfp(configFile)
+        configFile.close()
+
+    def getParser(self):
+        return self.cp
 
 
 class ThresholdContainer:

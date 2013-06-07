@@ -32,10 +32,11 @@ Use to find 'best' z score for calling.
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import os, pyximport, sys
+import cProfile, os, pyximport, sys
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
+    from utilities import ConfigReader
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -60,17 +61,19 @@ def main():
     parser.add_argument('--config', required=False, metavar="PATH", 
                         help="Path to .ini config file. Optional, defaults to "+configDefault, default=configDefault)
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Write cProfile runtime profile stats to output directory. Profile output can be read with 'python -m pstats PATH'")
+                        help="Write cProfile runtime profile stats to output directory, if not activated by default in config.ini. Profile output can be read with 'python -m pstats PATH'")
     args = vars(parser.parse_args())
     metricPaths = json.loads(open(args['metrics']).read())
     if not os.access(args['config'], os.R_OK):
-        raise ValueError("Cannot read .ini path "+args['config'])    
-    if args['profile']==True:
+        raise ValueError("Cannot read .ini path "+args['config'])
+    cp = ConfigReader(args['config']).getParser()
+    if args['profile'] or cp.has_option('zcall', 'profile'):
         pstats = NamedTemporaryFile(prefix="mergeEvaluation_", 
                                     suffix=".pstats", 
-                                    dir=args['out'], delete=False).name
-        cargs = (args['config'], 'metricPaths', args['thresholds'], 
-                   args['out'], args['text'])
+                                    dir=os.path.dirname(args['out']), 
+                                    delete=False).name
+        cargs = (args['config'], str(metricPaths), args['thresholds'], 
+                 args['out'], args['text'])
         cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % cargs
         cProfile.run(cmd, pstats)
     else:

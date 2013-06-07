@@ -44,6 +44,7 @@ import cProfile, os, sys, time
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
+    from utilities import ConfigReader
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -122,7 +123,8 @@ class ZCallComplete:
 def main():
     args = parseArgs()
     start = time.time()
-    if args['profile']==True:
+    cp = ConfigReader(args['config']).getParser()
+    if args['profile'] or cp.has_option('zcall', 'profile'):
         pstats = NamedTemporaryFile(prefix="zCallComplete_",
                                     suffix=".pstats", 
                                     dir=args['out'], delete=False).name
@@ -166,7 +168,7 @@ def parseArgs():
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Use cProfile to profile runtime operation")
+                        help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
     args = vars(parser.parse_args())
     inputKeys = ('bpm', 'egt', 'config')
     for key in inputKeys:
