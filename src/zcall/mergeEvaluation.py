@@ -32,16 +32,16 @@ Use to find 'best' z score for calling.
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import cProfile, os, pyximport, sys
+import cProfile, os, sys
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
     from utilities import ConfigReader
+    from calibration import MetricEvaluator
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
-pyximport.install()
-from calibration import MetricEvaluator
+
 
 def main():
     """Method to run as script from command line.  Run with --help for usage."""
