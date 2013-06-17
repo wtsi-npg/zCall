@@ -55,17 +55,20 @@ class PlinkHandler:
             raise ValueError(msg)
         if reorder:
             sortedCalls = [None]*self.snpTotal
-            for i in range(self.snpTotal):
+            i = 0
+            while i < self.snpTotal:
                 sortedCalls[self.sortMap[i]] = calls[i] 
+                i += 1
             calls = sortedCalls
         if self.snpTotal % 4 != 0:
             # if not an integer number of bytes, pad with no calls
             calls.extend([0]*(self.snpTotal % 4)) 
-        output = []
+        output = [0]*((self.snpTotal/4)+1)
         i = 0
         while i < self.snpTotal:
             byte = struct.pack('B', self.callsToByte(calls[i:i+4]))
-            output.append(byte)
+            j = i / 4
+            output[j] = byte
             i += 4
         return output
 
@@ -75,15 +78,17 @@ class PlinkHandler:
         Create byte string of the form '01001101', convert to integer
         See http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml
         """
-        if len(calls) != 4:
+        callTotal = 4
+        if len(calls) != callTotal:
             raise ValueError("Must have exactly 4 calls for byte conversion!")
-        byte = []
-        for call in calls:
+        byte = ['10']*callTotal
+        for i in range(callTotal):
+            call = calls[i]
             if call==1: bcall = '00' # major homozygote, 'AA'
             elif call==2: bcall = '01' # heterozygote, 'AB'
             elif call==3: bcall = '11' # minor homozygote, 'BB'
-            else: bcall = '10' # missing genotype, call=0
-            byte.append(bcall)
+            else: continue # bcall = '10' # missing genotype, call=0
+            byte[i] = bcall
         byteString = ''.join(byte)
         byteString = byteString[::-1] # reverse order of string characters
         return int(byteString, 2)
@@ -211,9 +216,12 @@ class PlinkHandler:
         - 2 additional columns for allele names (use A and B as dummy values)
         - Entries are *sorted* into (chromosome, position) order
         - Chromosomes are given numeric codes (including for X, Y, etc.)
+
+        Use "while" instead of "for range" for greater efficiency
         """
         unsorted = [None]*self.snpTotal
-        for i in range(self.snpTotal):
+        i = 0
+        while i < self.snpTotal:
              snp = self.bpm.names[i]
              chr = self.bpm.chr[i]
              pos = self.bpm.pos[i]
@@ -221,16 +229,21 @@ class PlinkHandler:
              alleleB = self.bpm.B[i]
              out = [chr, snp, "0", pos, alleleA, alleleB]
              unsorted[i] = out
+             i += 1
         # sort manifest entries
         out = [None]*self.snpTotal
-        for i in range(self.snpTotal):
+        i = 0
+        while i < self.snpTotal:
             out[self.sortMap[i]] = unsorted[i]
+            i += 1
         # write to file
         outFile = open(outPath, 'w')
-        for i in range(self.snpTotal):
+        i = 0
+        while i < self.snpTotal:
             words = []
             for item in out[i]: words.append(str(item))
             outFile.write("\t".join(words)+"\n")
+            i += 1
         outFile.close()
 
     def writeFam(self, sampleJson, outPath):
