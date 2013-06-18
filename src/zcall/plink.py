@@ -33,6 +33,8 @@ See http://pngu.mgh.harvard.edu/~purcell/plink/
 """
 
 import json, struct
+from math import ceil
+from sys import stderr
 from BPM import *
 
 class PlinkHandler:
@@ -63,12 +65,16 @@ class PlinkHandler:
         if self.snpTotal % 4 != 0:
             # if not an integer number of bytes, pad with no calls
             calls.extend([0]*(self.snpTotal % 4)) 
-        output = [0]*((self.snpTotal/4)+1)
+        output = [0]*(int(ceil(self.snpTotal/4.0)))
         i = 0
         while i < self.snpTotal:
             byte = struct.pack('B', self.callsToByte(calls[i:i+4]))
             j = i / 4
-            output[j] = byte
+            try:
+                output[j] = byte
+            except IndexError:
+                stderr.write("Failed to record byte at SNP index "+str(i)+"\n")
+                raise
             i += 4
         return output
 
