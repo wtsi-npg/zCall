@@ -55,9 +55,8 @@ def main():
                         help="Path to .json file containing threshold .txt paths indexed by z score")
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Path for .json output")
-    parser.add_argument('--text', required=False, metavar="PATH", 
-                       help="Path for text summary of metrics. Optional.", 
-                       default=None)
+    parser.add_argument('--text', required=False, metavar="PATH", default=None,
+                       help="Path for text summary of metrics. Optional.")
     parser.add_argument('--config', required=False, metavar="PATH", 
                         help="Path to .ini config file. Optional, defaults to "+configDefault, default=configDefault)
     parser.add_argument('--profile', action='store_true', default=False,
@@ -72,9 +71,12 @@ def main():
                                     suffix=".pstats", 
                                     dir=os.path.dirname(args['out']), 
                                     delete=False).name
-        cargs = (args['config'], str(metricPaths), args['thresholds'], 
-                 args['out'], args['text'])
-        cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % cargs
+        a = (args['config'], str(metricPaths), args['thresholds'], 
+             args['out'], args['text'])
+        if args['text']==None:
+            cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', %s)" % a
+        else:
+            cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % a
         cProfile.run(cmd, pstats)
     else:
         MetricEvaluator(args['config']).writeBest(metricPaths, 
