@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 
-# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+# Some code in this file originates from the findMeanSD.py and 
+# findThresholds.py scripts developed by the Broad Institute. Other code by 
+# Genome Research Ltd. All contributions are copyright their respective 
+# authors. See https://github.com/wtsi-npg/zCall for revision history.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +27,6 @@
 # population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. 
 # Epub 2012 Jul 27. PubMed PMID: 22843986.
 
-# Author: Iain Bancarz, ib5@sanger.ac.uk
 
 """Classes to find thresholds and evaluate z scores, as parameters for zCall.
 
