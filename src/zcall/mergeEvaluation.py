@@ -36,7 +36,7 @@ import cProfile, os, sys
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
-    from utilities import ConfigReader
+    from utilities import ArgParserExtra
     from calibration import MetricEvaluator
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
@@ -60,13 +60,16 @@ def main():
     parser.add_argument('--config', required=False, metavar="PATH", 
                         help="Path to .ini config file. Optional, defaults to "+configDefault, default=configDefault)
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Write cProfile runtime profile stats to output directory, if not activated by default in config.ini. Profile output can be read with 'python -m pstats PATH'")
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
     args = vars(parser.parse_args())
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['metrics', 'thresholds', 'config'])
+    args = parserExtra.validateOutputFile()
+    profile = parserExtra.enableProfile()
     metricPaths = json.loads(open(args['metrics']).read())
-    if not os.access(args['config'], os.R_OK):
-        raise ValueError("Cannot read .ini path "+args['config'])
-    cp = ConfigReader(args['config']).getParser()
-    if args['profile'] or cp.has_option('zcall', 'profile'):
+    if profile:
         pstats = NamedTemporaryFile(prefix="mergeEvaluation_", 
                                     suffix=".pstats", 
                                     dir=os.path.dirname(args['out']), 

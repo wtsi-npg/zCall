@@ -44,7 +44,7 @@ import cProfile, os, sys, time
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
-    from utilities import ConfigReader
+    from utilities import ArgParserExtra
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -119,12 +119,15 @@ class ZCallComplete:
                   self.args['binary'],
                   self.args['verbose'])
         
-
 def main():
-    args = parseArgs()
     start = time.time()
-    cp = ConfigReader(args['config']).getParser()
-    if args['profile'] or cp.has_option('zcall', 'profile'):
+    args = getArgs()
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['bpm', 'egt', 'config', 'samples'])
+    args = parserExtra.validateOutputDir()
+    if args['text']!=None: args = parserExtra.validateOutputFile('text')
+    profile = parserExtra.enableProfile()
+    if profile:
         pstats = NamedTemporaryFile(prefix="zCallComplete_",
                                     suffix=".pstats", 
                                     dir=args['out'], delete=False).name
@@ -135,7 +138,7 @@ def main():
         duration = time.time() - start
         print "zCall finished. Duration:", round(duration, 2), "seconds."
 
-def parseArgs():
+def getArgs():
     description = "Standalone script to run the complete zcall process: Generate and evaluate thresholds, and apply zcall to no-calls in the input data."
     parser = argparse.ArgumentParser(description=description)
     configDefault = os.path.join(sys.path[0], '../etc/config.ini')
@@ -168,22 +171,10 @@ def parseArgs():
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
     args = vars(parser.parse_args())
-    inputKeys = ('bpm', 'egt', 'config')
-    for key in inputKeys:
-        if not os.access(args[key], os.R_OK):
-            msg = "Cannot read path: \""+args[key]+"\"\n"
-            sys.stderr.write(msg)
-            sys.exit(1)
-        else:
-            args[key] = os.path.abspath(args[key])
-    if not os.path.isdir(args['out']) or  not os.access(args['out'], os.W_OK):
-        msg = "Output path \""+args['out']+"\" is not a writable directory!\n"
-        sys.stderr.write(msg)
-        sys.exit(1)
-    
-
     return args
 
 if __name__ == "__main__":

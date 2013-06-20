@@ -38,7 +38,7 @@ try:
     import argparse, json
     from tempfile import NamedTemporaryFile
     from calibration import ThresholdFinder
-    from utilities import ConfigReader
+    from utilities import ArgParserExtra
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -56,29 +56,33 @@ Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
 def main():
     # 'main' method to run script from command line
     start = time.time()
-    args = validate_args()
+    args = get_args()
     verbose = args['verbose']
     if verbose: print "Starting prepareThresholds.py"
-    egt = os.path.abspath(args['egt'])
-    out = os.path.abspath(args['out'])
-    config = os.path.abspath(args['config'])
-    cp = ConfigReader(config).getParser()
-    if args['profile'] or cp.has_option('zcall', 'profile'):
+    # validate arguments
+    if args['ztotal']<1 or args['zstart']<1:
+        raise ValueError("Invalid zstart or ztotal option.")
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['egt', 'config'])
+    args = parserExtra.validateOutputDir()
+    profile = parserExtra.enableProfile()
+    if profile:
         pstats = NamedTemporaryFile(prefix="prepareThresholds_", 
                                     suffix=".pstats", 
                                     dir=out, delete=False).name
-        cmd = "ThresholdFinder('"+egt+"', '"+config+\
+        cmd = "ThresholdFinder('"+args['egt']+"', '"+config+\
             "').runMultiple(%s, %s, '%s', %s, %s)" % \
-            (args['zstart'], args['ztotal'], out, verbose, args['force'])
+            (args['zstart'], args['ztotal'], args['out'], args['verbose'], 
+             args['force'])
         cProfile.run(cmd, pstats)
     else:
-        tf = ThresholdFinder(egt, config)
-        tf.runMultiple(args['zstart'], args['ztotal'], out, verbose,
-                   args['force'])
+        tf = ThresholdFinder(args['egt'], args['config'])
+        tf.runMultiple(args['zstart'], args['ztotal'], args['out'], 
+                       args['verbose'], args['force'])
         duration = time.time() - start
         if verbose: print "Finished. Duration:", round(duration, 1), "s"
     
-def validate_args():
+def get_args():
     # parse command-line arguments and return dictionary of params
     description = "Generates threshold files for use with the zCall genotype caller.  Inputs are an .egt file and one or more Z score values.  The .egt file is a proprietary Illumina binary file format, containing typical means and standard deviations for intensity clusters.  An .egt file is supplied by Illumina for its own genotyping chips, or it may be generated using the GenomeStudio software for custom probe sets."
     parser = argparse.ArgumentParser(description=description)
@@ -101,25 +105,11 @@ def validate_args():
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
                         help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
     parser.add_argument('--force', action='store_true', default=False,
                         help="Force overwrite of existing threshold files (if any)")
     args = vars(parser.parse_args())
-    # validate arguments
-    egt = args['egt']
-    out = args['out']
-    config = args['config']
-    if not os.access(egt, os.R_OK):
-        raise OSError("Cannot read .egt input path \""+egt+"\"")
-    if not os.path.exists(out):
-        raise OSError("Output path \""+out+"\" does not exist.")
-    elif not os.path.isdir(out):
-        raise OSError("Output path \""+out+"\" is not a directory.")
-    elif not os.access(out, os.W_OK):
-        raise OSError("Cannot write to output directory \""+out+"\"")
-    if not os.access(config, os.R_OK):
-        raise OSError("Cannot read config path \""+config+"\"")
-    if args['ztotal']<1 or args['zstart']<1:
-        raise ValueError("Invalid zstart or ztotal option.")
     return args
 
 if __name__ == "__main__":

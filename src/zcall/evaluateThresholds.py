@@ -36,7 +36,7 @@ from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
     from tempfile import NamedTemporaryFile
-    from utilities import ConfigReader
+    from utilities import ArgParserExtra
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -62,23 +62,19 @@ def main():
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--profile', action='store_true', default=False,
-                        help="Use cProfile to profile runtime operation, if not activated by default in config.ini")
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
     configDefault = os.path.join(sys.path[0], '../etc/config.ini')
     configDefault = os.path.abspath(configDefault)
     parser.add_argument('--config', metavar="PATH", default=configDefault,
-                        help="Path to .ini config file. Default = etc/config.ini")
+                        help="Path to config file. Default="+configDefault)
     args = vars(parser.parse_args())
-    inputKeys = ['thresholds', 'bpm', 'egt', 'gtc']
-    for key in inputKeys:
-        if not os.access(args[key], os.R_OK):
-            raise OSError("Cannot read input path \""+args[key]+"\"")
-        else:
-            args[key] = os.path.abspath(args[key])
-    (dirName, fileName) = os.path.split(os.path.abspath(args['out']))
-    if fileName=='' or not os.access(dirName, os.R_OK):
-        raise OSError("Invalid output path \""+args['out']+"\"")
-    cp = ConfigReader(os.path.abspath(args['config'])).getParser()
-    if args['profile'] or cp.has_option('zcall', 'profile'):
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['thresholds','bpm','egt','gtc','config'])
+    args = parserExtra.validateOutputFile()
+    profile = parserExtra.enableProfile()
+    if profile:
         pstats = NamedTemporaryFile(prefix="evaluateThresholds_", 
                                     suffix=".pstats", 
                                     dir=os.path.dirname(args['out']), 
