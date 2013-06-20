@@ -32,13 +32,16 @@ Use to find 'best' z score for calling.
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import os, sys
+import cProfile, os, sys
 try: 
     import argparse, json
+    from tempfile import NamedTemporaryFile
+    from utilities import ArgParserExtra
+    from calibration import MetricEvaluator
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
-from calibration import MetricEvaluator
+
 
 def main():
     """Method to run as script from command line.  Run with --help for usage."""
@@ -52,19 +55,36 @@ def main():
                         help="Path to .json file containing threshold .txt paths indexed by z score")
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Path for .json output")
-    parser.add_argument('--text', required=False, metavar="PATH", 
-                       help="Path for text summary of metrics. Optional.", 
-                       default=None)
+    parser.add_argument('--text', required=False, metavar="PATH", default=None,
+                       help="Path for text summary of metrics. Optional.")
     parser.add_argument('--config', required=False, metavar="PATH", 
                         help="Path to .ini config file. Optional, defaults to "+configDefault, default=configDefault)
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
     args = vars(parser.parse_args())
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['metrics', 'thresholds', 'config'])
+    args = parserExtra.validateOutputFile()
+    profile = parserExtra.enableProfile()
     metricPaths = json.loads(open(args['metrics']).read())
-    if not os.access(args['config'], os.R_OK):
-        raise ValueError("Cannot read .ini path "+args['config'])
-    
-
-    MetricEvaluator(args['config']).writeBest(metricPaths, args['thresholds'], 
-                                              args['out'], args['text'])
+    if profile:
+        pstats = NamedTemporaryFile(prefix="mergeEvaluation_", 
+                                    suffix=".pstats", 
+                                    dir=os.path.dirname(args['out']), 
+                                    delete=False).name
+        a = (args['config'], str(metricPaths), args['thresholds'], 
+             args['out'], args['text'])
+        if args['text']==None:
+            cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', %s)" % a
+        else:
+            cmd = "MetricEvaluator('%s').writeBest(%s, '%s', '%s', '%s')" % a
+        cProfile.run(cmd, pstats)
+    else:
+        MetricEvaluator(args['config']).writeBest(metricPaths, 
+                                                  args['thresholds'], 
+                                                  args['out'], args['text'])
 
 if __name__ == "__main__":
     main()

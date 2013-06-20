@@ -26,7 +26,8 @@
 
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
-import json
+import os, json
+from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
 from EGT import *
@@ -111,6 +112,83 @@ class CallingBase(SharedBase):
         """Set thresholds to given ThresholdContainer object"""
         self.thresholds = thresholds
 
+class ConfigReader:
+    """Convenience wrapper for the ConfigParser class to read .ini files"""
+
+    def __init__(self, configPath):
+        configFile = open(configPath, 'r')
+        self.cp = ConfigParser()
+        self.cp.readfp(configFile)
+        configFile.close()
+
+    def getParser(self):
+        return self.cp
+
+class ArgParserExtra:
+    """Class for additional parsing/validation of command-line arguments"""
+    def __init__(self, args):
+        self.args = args
+    
+    def enableProfile(self):
+        """Check if script should be run with Python profiler enabled
+
+        Note that parser converts - to _ in --no-profile option key"""
+        cp = ConfigReader(self.args['config']).getParser()
+        if cp.has_option('zcall', 'profile'): default = True
+        else: default = False
+        if self.args['profile'] and self.args['no_profile']:
+            raise ValueError("Cannot specify both --profile and --no-profile!")
+        elif self.args['profile']:
+            enable = True
+        elif self.args['no_profile']:
+            enable = False
+        else:
+            enable = default
+        return enable
+
+    def validateInputs(self, keys):
+        """Validate input paths with given keys
+
+        Convert paths to absolute paths, and return revised args"""
+        for key in keys:
+            if not os.path.exists(self.args[key]):
+                raise OSError("Input path '"+self.args[key]+"' does not exist!")
+            elif not os.access(self.args[key], os.R_OK):
+                raise OSError("Cannot read input path '"+self.args[key]+"'!")
+            else:
+                self.args[key] = os.path.abspath(self.args[key])
+        return self.args
+
+    def validateOutputDirPath(self, dirPath):
+        """Validate output directory path, and convert to absolute path"""
+        if not os.path.exists(dirPath):
+            raise OSError("Output '"+dirPath+"' does not exist!")
+        elif not os.path.isdir(dirPath):
+            raise OSError("Output '"+dirPath+"' is not a directory!")
+        elif not os.access(dirPath, os.W_OK):
+            raise OSError("Cannot write to output '"+dirPath+"'!")
+        else:
+            dirPath = os.path.abspath(dirPath)
+        return dirPath
+
+    def validateOutputDir(self, key="out"):
+        """Validate output directory argument
+
+        Convert path to absolute path, and return revised args"""
+        self.args[key] = self.validateOutputDirPath(self.args[key])
+        return self.args
+
+    def validateOutputFile(self, key="out"):
+        """Validate an output file path
+
+        Directory must exist and be writable, file may not be"""
+        if os.path.isdir(self.args[key]):
+            raise OSError("Output file '"+self.args[key]+"' is a directory!")
+        (dirName, fileName) = os.path.split(self.args[key])
+        dirName = self.validateOutputDirPath(dirName)
+        self.args[key] = os.path.join(dirName, fileName)
+        return self.args
+        
 
 class ThresholdContainer:
     """Class to contain thresholds, read from thresholds.txt file"""
