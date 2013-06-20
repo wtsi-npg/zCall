@@ -1,7 +1,13 @@
 #! /usr/bin/python
 import sys
 
-# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+
+# Original code supplied by Illumina, Inc. subsequently modified by Broad 
+# Institute and Genome Research Ltd. The Illumina provided code was provided 
+# as-is and with no warranty as to performance and no warranty against it 
+# infringing any other party's intellectual property rights. All contributions 
+# are copyright their respective authors. See https://github.com/wtsi-npg/zCall
+# for revision history.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

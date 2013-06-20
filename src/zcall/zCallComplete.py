@@ -40,9 +40,11 @@ or reuse of thresholds. It is intended as a convenience script for small
 datasets where parallelization is not required, and an illustration of the 
 zcall method.
 """
-import os, sys, time
+import cProfile, os, sys, time
 try: 
     import argparse, json
+    from tempfile import NamedTemporaryFile
+    from utilities import ArgParserExtra
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -83,8 +85,8 @@ class ZCallComplete:
 
     def prepare(self, zstart, ztotal, egtPath, outDir, config, verbose=False):
         """ Prepare threshold.txt files for given range of z scores"""
-        tf = ThresholdFinder(config)
-        return tf.runMultiple(zstart, ztotal, egtPath, outDir, verbose)
+        tf = ThresholdFinder(egtPath, config)
+        return tf.runMultiple(zstart, ztotal, outDir, verbose)
         
 
     def run(self):
@@ -117,16 +119,26 @@ class ZCallComplete:
                   self.args['binary'],
                   self.args['verbose'])
         
-
 def main():
-    args = parseArgs()
     start = time.time()
-    ZCallComplete(args).run()
+    args = getArgs()
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['bpm', 'egt', 'config', 'samples'])
+    args = parserExtra.validateOutputDir()
+    if args['text']!=None: args = parserExtra.validateOutputFile('text')
+    profile = parserExtra.enableProfile()
+    if profile:
+        pstats = NamedTemporaryFile(prefix="zCallComplete_",
+                                    suffix=".pstats", 
+                                    dir=args['out'], delete=False).name
+        cProfile.run('ZCallComplete('+str(args)+').run()', pstats)
+    else:
+        ZCallComplete(args).run()
     if args['verbose']==True:
         duration = time.time() - start
         print "zCall finished. Duration:", round(duration, 2), "seconds."
 
-def parseArgs():
+def getArgs():
     description = "Standalone script to run the complete zcall process: Generate and evaluate thresholds, and apply zcall to no-calls in the input data."
     parser = argparse.ArgumentParser(description=description)
     configDefault = os.path.join(sys.path[0], '../etc/config.ini')
@@ -158,21 +170,11 @@ def parseArgs():
                        default=None)
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
     args = vars(parser.parse_args())
-    inputKeys = ('bpm', 'egt', 'config')
-    for key in inputKeys:
-        if not os.access(args[key], os.R_OK):
-            msg = "Cannot read path: \""+args[key]+"\"\n"
-            sys.stderr.write(msg)
-            sys.exit(1)
-        else:
-            args[key] = os.path.abspath(args[key])
-    if not os.path.isdir(args['out']) or  not os.access(args['out'], os.W_OK):
-        msg = "Output path \""+args['out']+"\" is not a writable directory!\n"
-        sys.stderr.write(msg)
-        sys.exit(1)
-    
-
     return args
 
 if __name__ == "__main__":

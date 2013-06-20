@@ -31,10 +31,12 @@
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import os
+import cProfile, os, sys
 from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
+    from tempfile import NamedTemporaryFile
+    from utilities import ArgParserExtra
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -59,20 +61,33 @@ def main():
                         help="Ending index in GTC .json file")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
+    configDefault = os.path.join(sys.path[0], '../etc/config.ini')
+    configDefault = os.path.abspath(configDefault)
+    parser.add_argument('--config', metavar="PATH", default=configDefault,
+                        help="Path to config file. Default="+configDefault)
     args = vars(parser.parse_args())
-    inputKeys = ['thresholds', 'bpm', 'egt', 'gtc']
-    for key in inputKeys:
-        if not os.access(args[key], os.R_OK):
-            raise OSError("Cannot read input path \""+args[key]+"\"")
-        else:
-            args[key] = os.path.abspath(args[key])
-    (dirName, fileName) = os.path.split(os.path.abspath(args['out']))
-    if fileName=='' or not os.access(dirName, os.R_OK):
-        raise OSError("Invalid output path \""+args['out']+"\"")
-    
-    eva = SampleEvaluator(args['bpm'], args['egt'])
-    eva.run(args['thresholds'], args['gtc'], args['start'], 
-            args['end'], args['out'], args['verbose'])
+    parserExtra = ArgParserExtra(args)
+    args = parserExtra.validateInputs(['thresholds','bpm','egt','gtc','config'])
+    args = parserExtra.validateOutputFile()
+    profile = parserExtra.enableProfile()
+    if profile:
+        pstats = NamedTemporaryFile(prefix="evaluateThresholds_", 
+                                    suffix=".pstats", 
+                                    dir=os.path.dirname(args['out']), 
+                                    delete=False).name
+        cmd0 = "SampleEvaluator('%s', '%s')" % (args['bpm'], args['egt'])
+        args1 = (args['thresholds'], args['gtc'], args['start'], 
+                 args['end'], args['out'], args['verbose'])
+        cmd1 = ".run('%s', '%s', %s, %s, '%s', %s)" % args1
+        cProfile.run(cmd0+cmd1, pstats)
+    else:
+        eva = SampleEvaluator(args['bpm'], args['egt'])
+        eva.run(args['thresholds'], args['gtc'], args['start'], 
+                args['end'], args['out'], args['verbose'])
 
 if __name__ == "__main__":
     main()

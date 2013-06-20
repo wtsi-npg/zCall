@@ -28,13 +28,14 @@
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
 
-import os, struct
+import cProfile, os, struct, sys
 from GTC import *
 try: 
     import argparse, json
     from calibration import ThresholdFinder
-    from utilities import CallingBase, ThresholdContainer
+    from utilities import CallingBase, ThresholdContainer, ArgParserExtra
     from plink import PlinkHandler
+    from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -135,29 +136,41 @@ def main():
                         help="Path for .json log output. Defaults to [plink prefix]_log.json in same directory as Plink output.")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--profile', action='store_true', default=False,
+                        help="Use cProfile to profile runtime operation. Overrides default in config.ini.")
+    parser.add_argument('--no-profile', action='store_true', default=False,
+                        help="Do not use cProfile to profile runtime operation. Overrides default in config.ini.")
+    configDefault = os.path.join(sys.path[0], '../etc/config.ini')
+    configDefault = os.path.abspath(configDefault)
+    parser.add_argument('--config', metavar="PATH", default=configDefault,
+                        help="Path to .ini config file. Default = etc/config.ini")
     parser.add_argument('--null', action='store_true', default=False,
                         help="Do not apply zcall. Instead output GTC calls unchanged to an individual-major Plink binary file. Used for testing.")
     args = vars(parser.parse_args())
-    inputKeys = ['thresholds', 'bpm', 'egt', 'samples']
-    for key in inputKeys:
-        if not os.access(args[key], os.R_OK):
-            raise OSError("Cannot read input path \""+args[key]+"\"")
-        else:
-            args[key] = os.path.abspath(args[key])
-    dirName = os.path.abspath(args['out'])
-    if not os.access(dirName, os.R_OK) or not os.path.isdir(dirName):
-        raise OSError("Invalid output directory \""+args['out']+"\"")
-    else:
-        args['out'] = dirName
+    parserExtra = ArgParserExtra(args)
+    inputKeys = ['thresholds', 'bpm', 'egt', 'samples', 'config']
+    args = parserExtra.validateInputs(inputKeys)
+    args = parserExtra.validateOutputDir()
     if args['log'] == None:
         args['log'] = os.path.join(args['out'], args['plink']+'_log.json')
     else:
         args['log'] = os.path.abspath(args['log'])
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
-    caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
-    caller.run(args['samples'], args['out'], args['plink'], args['log'],
-               args['binary'], args['verbose'], args['null'])
+    profile = ArgParserExtra(args).enableProfile()
+    if profile:
+        pstats = NamedTemporaryFile(prefix="runZCall_", suffix=".pstats", 
+                                    dir=args['out'], delete=False).name
+        arg0 = (args['bpm'], args['egt'], args['thresholds'])
+        arg1 = (args['samples'], args['out'], args['plink'], args['log'],
+                args['binary'], args['verbose'], args['null'])
+        call = ("SampleCaller('%s', '%s', '%s')." % arg0)+\
+            ("run('%s', '%s', '%s', '%s', %s, %s, %s)" % arg1)
+        cProfile.run(call, pstats)           
+    else:
+        caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
+        caller.run(args['samples'], args['out'], args['plink'], args['log'],
+                   args['binary'], args['verbose'], args['null'])
 
 if __name__ == "__main__":
     main()

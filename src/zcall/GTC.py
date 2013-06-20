@@ -1,6 +1,12 @@
 #! /usr/bin/python
 
-# Copyright (c) 2013 Genome Research Ltd. All rights reserved.
+
+# Original code supplied by Illumina, Inc. subsequently modified by Broad 
+# Institute and Genome Research Ltd. The Illumina provided code was provided 
+# as-is and with no warranty as to performance and no warranty against it 
+# infringing any other party's intellectual property rights. All contributions 
+# are copyright their respective authors. See https://github.com/wtsi-npg/zCall
+# for revision history.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +33,7 @@
 
 import struct
 import math
+from cStringIO import StringIO
 
 class GTC:
     ''' Class for parsing GTC file'''
@@ -34,10 +41,11 @@ class GTC:
     def __init__(self, inputPath, bpmNormIDs):
         ''' Init function for class. Input is a .gtc file '''
         self.inputPath = inputPath
-        self.f = open(self.inputPath, 'rb') # open file handler for binary file
+        self.f = StringIO(open(self.inputPath, 'rb').read())
+        #self.f = open(self.inputPath, 'rb') # open file handler for binary file
         self.BPMnormIDs = bpmNormIDs # list with norm ID for each snp
-        
         self.TOC = self.parseTOC() # parse table of contents to get location of other information
+        self.numSNPs = self.readNumSNPs()
         self.sampleName = self.parseString(10) # parse sample name
         self.samplePlate = self.parseString(11) # parse sample plate
         self.sampleWell = self.parseString(12) # parse sample well
@@ -70,13 +78,14 @@ class GTC:
         count = struct.unpack("i",line)[0] 
         TOC = {}
 
-        for i in range(count):            
+        i = 0
+        while i < count:
             line = self.f.read(2)
             id = struct.unpack("h",line)
             line = self.f.read(4)            
             offset = struct.unpack("I",line)
             TOC[id[0]] = offset[0]
-
+            i+=1
         return TOC
 
 
@@ -103,19 +112,23 @@ class GTC:
         Input is ID for variable of interest in TOC
         Output is a list with integer intensity values in the order they were parsed
         '''        
-        intensities = []
+        intensities = [0]*self.numSNPs
         offset = self.TOC[id]
 
         self.f.seek(offset,0)
         line = self.f.read(4)
         count = struct.unpack("i",line)[0]
-        self.numSNPs = count
-        
-        for i in range(count):
+        if count != self.numSNPs:
+            msg = "Inconsistent SNP count in GTC file intensity group: "+\
+                "Expected %s, found %s" % (self.numSNPs, count)
+            raise ValueError(msg)
+        #self.numSNPs = count
+        i = 0
+        while i < count:
             line = self.f.read(2)
             y = struct.unpack("H",line)
-            intensities.append(y[0])
-
+            intensities[i] = y[0]
+            i += 1
         return intensities
 
     def extractNormalizationTransformations(self, id):
@@ -136,12 +149,13 @@ class GTC:
         line = self.f.read(4)
         count = struct.unpack("i",line)[0]
 
-        for i in range(count):
+        i = 0
+        while i < count:
             line = self.f.read(4)
             line = self.f.read(48)
             x = struct.unpack("<12f", line)
             normTransforms[self.normIDlist[i]] = {"offset_x":x[0],"offset_y":x[1],"scale_x":x[2],"scale_y":x[3],"shear":x[4],"theta":x[5]}
-
+            i += 1
         return normTransforms
     
     def extractBaseCalls(self, id):
@@ -150,18 +164,20 @@ class GTC:
         Input is id for BaseCalls in TOC
         Output is a list with one basecall for each SNP (ex: AT, GT,AA...)
         '''
-        baseCalls = []
+        baseCalls = [None]*self.numSNPs
         offset = self.TOC[id]
-
         self.f.seek(offset,0)
         line = self.f.read(4)
         count = struct.unpack("i",line)[0]
-
-        for i in range(count):
+        if count != self.numSNPs:
+            msg = "Inconsistent SNP count in GTC file intensity group: "+\
+                "Expected %s, found %s" % (self.numSNPs, count)
+        i = 0
+        while i < count:
             line = self.f.read(2)
             calls = struct.unpack("ss",line)
-            baseCalls.append(calls[0] + calls[1])
-
+            baseCalls[i] = calls[0] + calls[1]
+            i += 1
         return baseCalls
 
     def extractGenotypes(self, id):
@@ -170,20 +186,21 @@ class GTC:
         Input is ID for Genotypes in TOC
         Output is a list with one genotype per SNP (0,1,2,3)
         '''
-        genotypes = []
+        genotypes = [None]*self.numSNPs
         offset = self.TOC[id]
-
         self.f.seek(offset,0)
         line = self.f.read(4)
         count = struct.unpack("i",line)[0]
-
-        for i in range(count):
+        if count != self.numSNPs:
+            msg = "Inconsistent SNP count in GTC file intensity group: "+\
+                "Expected %s, found %s" % (self.numSNPs, count)
+        i = 0
+        while i < count:
             line = self.f.read(1)
             gt = struct.unpack("b",line)
-            genotypes.append(gt[0])
-            
+            genotypes[i] = gt[0]
+            i += 1
         return genotypes
-
 
     def getTotalSNPs(self):
         return self.numSNPs
@@ -194,10 +211,11 @@ class GTC:
         No Input
         Outputs are normalized x and y intensities in python lists
         '''
-        normXIntensities = []
-        normYIntensities = []
+        normXIntensities = [0]*self.numSNPs
+        normYIntensities = [0]*self.numSNPs
         
-        for i in range(self.numSNPs):
+        i = 0
+        while i < self.numSNPs:
             xraw = self.rawXintensities[i]
             yraw = self.rawYintensities[i]
             normID = self.BPMnormIDs[i]
@@ -226,7 +244,18 @@ class GTC:
             if yn < 0:
                 yn = 0.0
 
-            normXIntensities.append(xn)
-            normYIntensities.append(yn)
+            normXIntensities[i] = xn
+            normYIntensities[i] = yn
+            i += 1
 
         return (normXIntensities, normYIntensities)            
+
+    def readNumSNPs(self):
+        """Read total number of SNPs from first block of intensity data
+
+        Adapted from extractIntensities"""
+        offset = self.TOC[1000]
+        self.f.seek(offset,0)
+        line = self.f.read(4)
+        count = struct.unpack("i",line)[0]
+        return count
