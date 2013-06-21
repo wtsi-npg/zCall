@@ -26,7 +26,7 @@
 
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
-import os, json
+import os, json, sys
 from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
@@ -41,7 +41,14 @@ class SharedBase:
 
     def readSampleJson(self, inPath):
         """Read sample GTC paths from .json file used by genotyping pipeline"""
-        samples = json.loads(open(inPath).read())
+        contents = open(inPath).read()
+        try: 
+            samples = json.loads(contents)
+        except ValueError: 
+            msg = "JSON parser error! Input to failed parse attempt:\n"
+            sys.stderr.write(msg)
+            sys.stderr.write(contents)
+            raise
         gtc = []
         for sample in samples: gtc.append(sample['result'])
         return gtc

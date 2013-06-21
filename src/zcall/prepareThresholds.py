@@ -69,8 +69,8 @@ def main():
     if profile:
         pstats = NamedTemporaryFile(prefix="prepareThresholds_", 
                                     suffix=".pstats", 
-                                    dir=out, delete=False).name
-        cmd = "ThresholdFinder('"+args['egt']+"', '"+config+\
+                                    dir=args['out'], delete=False).name
+        cmd = "ThresholdFinder('"+args['egt']+"', '"+args['config']+\
             "').runMultiple(%s, %s, '%s', %s, %s)" % \
             (args['zstart'], args['ztotal'], args['out'], args['verbose'], 
              args['force'])
