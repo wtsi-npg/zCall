@@ -30,14 +30,18 @@
 """Process Plink format genotyping data
 
 See http://pngu.mgh.harvard.edu/~purcell/plink/
+
+Requires the plinktools package; see https://github.com/iainrb/plinktools
 """
 
 import json, struct
 from math import ceil
 from sys import stderr
 from BPM import *
+from plink import PlinkHandler # requires plinktools in PYTHONPATH
 
-class PlinkHandler:
+
+class PlinkWriter(PlinkHandler):
     """Class to handle Plink format data"""
 
     def __init__(self, bpm):
@@ -50,7 +54,9 @@ class PlinkHandler:
         """Translate genotype calls for one sample to Plink binary
 
         4 genotype calls are packed into one byte of output
-        Returns a list of struct.pack strings corresponding to output bytes"""
+        Returns a list of struct.pack strings corresponding to output bytes
+
+        Overrides method in parent class, adds reorder functionality"""
         if len(calls) != self.snpTotal:
             msg = "Number of calls %s is not equal to SNP total %s" % \
                 (len(calls), self.snpTotal)
@@ -77,27 +83,6 @@ class PlinkHandler:
                 raise
             i += 4
         return output
-
-    def callsToByte(self, calls):
-        """Convert list of 4 calls to an integer in Plink binary format 
-
-        Create byte string of the form '01001101', convert to integer
-        See http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml
-        """
-        callTotal = 4
-        if len(calls) != callTotal:
-            raise ValueError("Must have exactly 4 calls for byte conversion!")
-        byte = ['10']*callTotal
-        for i in range(callTotal):
-            call = calls[i]
-            if call==1: bcall = '00' # major homozygote, 'AA'
-            elif call==2: bcall = '01' # heterozygote, 'AB'
-            elif call==3: bcall = '11' # minor homozygote, 'BB'
-            else: continue # bcall = '10' # missing genotype, call=0
-            byte[i] = bcall
-        byteString = ''.join(byte)
-        byteString = byteString[::-1] # reverse order of string characters
-        return int(byteString, 2)
 
     def getSampleFields(self, sample):
         """Get 6 sample metadata fields for .fam or .ped file
@@ -128,58 +113,6 @@ class PlinkHandler:
             elif chroms[i]=='MT': chroms[i] = 26
             else: chroms[i] = int(chroms[i])
         return chroms
-
-    def parseBed(self, bed):
-        """Parse a single byte from a .bed file"""
-        parsed = bin(ord(bed))[2:]
-        gap = 8 - len(parsed)
-        if gap > 0: parsed = ''.join(['0']*gap)+parsed
-        elif gap < 0: raise ValueError
-        # parsed is now a string of the form '01101100'
-        return parsed
-
-    def readGenotypes(self, parsedBed):
-        """Read a block of 4 genotypes from a parsed .bed string 
-
-        Return in numeric format: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
-        """
-        parsedBed = parsedBed[::-1] # reverse character order
-        i = 0
-        gtypes = []
-        while i < len(parsedBed):
-            pair = parsedBed[i:i+2]
-            if pair=='00': gtype = 1
-            elif pair=='01': gtype = 2
-            elif pair=='11': gtype = 3
-            elif pair=='10': gtype = 0
-            else: raise ValueError("Invalid genotype string")
-            gtypes.append(gtype)
-            i += 2
-        return gtypes
-
-    def readBedFile(self, bedPath, sampleTotal):
-        """Read genotype calls from a Plink .bed file
-
-        Input should be in (default) SNP-major order
-        May have extra 'null' calls, to have integer number of bytes per sample
-        Need total samples to identify and strip off null padding (if any)
-        """
-        bed = open(bedPath).read()
-        total = 0
-        if ord(bed[0])!=108 or ord(bed[1])!=27:
-            raise ValueError("Header does not start with Plink 'magic number'!")
-        elif ord(bed[2])!=1:
-            raise ValueError("Plink .bed file must be in SNP-major order.")
-        gtypes = []
-        calls = 0 # calls for current SNP; should be one per sample
-        for i in range(3, len(bed)): # skip first 3 bytes 
-            gtBlock = self.readGenotypes(self.parseBed(bed[i])) # 4 genotypes
-            gtypes.extend(gtBlock)
-            calls += len(gtBlock)
-            if calls >= sampleTotal: # remove padding (if any), reset count
-                while len(gtypes) % sampleTotal != 0: gtypes.pop()
-                calls = 0
-        return gtypes
 
     def snpSortMap(self):
         """Sort snps into (chromosome, position) order
