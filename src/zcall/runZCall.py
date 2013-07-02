@@ -34,7 +34,7 @@ try:
     import argparse, json
     from calibration import ThresholdFinder
     from utilities import CallingBase, ThresholdContainer, ArgParserExtra
-    from plink import PlinkHandler
+    from plinkWriter import PlinkWriter
     from tempfile import NamedTemporaryFile
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
@@ -81,26 +81,26 @@ class SampleCaller(CallingBase):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(samplesPath)
         calls = []
-        ph = PlinkHandler(self.bpm)
+        pw = PlinkWriter(self.bpm)
         zcallTotal = 0
         gainsTotal = 0
         for gtcPath in gtcPaths:
             if verbose: print "Calling GTC file", gtcPath
             gtc = GTC(gtcPath, self.bpm.normID)
             (sampleCalls, zcalls, gains) = self.makeCalls(gtc, null)
-            if binary: calls.extend(ph.callsToBinary(sampleCalls, reorder))
+            if binary: calls.extend(pw.callsToBinary(sampleCalls, reorder))
             else: calls.extend(sampleCalls)
             zcallTotal += zcalls
             gainsTotal += gains
         outStem = os.path.join(outDir, prefix)
         if binary:
-            ph.writeBed(calls, outStem+'.bed', verbose)
-            ph.writeBim(outStem+'.bim')
-            ph.writeFam(samplesPath, outStem+'.fam')
+            pw.writeBed(calls, outStem+'.bed', verbose)
+            pw.writeBim(outStem+'.bim')
+            pw.writeFam(samplesPath, outStem+'.fam')
         else:
-            ph.writePed(calls, samplesPath, outStem+'.ped')
-            ph.writeMap(outStem+'.map')
-            ph.writeFam(samplesPath, outStem+'.fam')
+            pw.writePed(calls, samplesPath, outStem+'.ped')
+            pw.writeMap(outStem+'.map')
+            pw.writeFam(samplesPath, outStem+'.fam')
         logData = { 'total_samples': len(gtcPaths),
                     'sample_json': samplesPath,
                     'plink_output': outStem,
