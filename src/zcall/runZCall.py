@@ -29,6 +29,7 @@
 
 
 import cProfile, os, struct, sys
+import shared
 from GTC import *
 try: 
     import argparse, json
@@ -37,7 +38,7 @@ try:
     from plinkWriter import PlinkWriter
     from tempfile import NamedTemporaryFile
 except ImportError: 
-    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.stderr.write(shared.importErrorMessage)
     sys.exit(1)
 
 

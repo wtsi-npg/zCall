@@ -32,13 +32,14 @@ Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
 import cProfile, os, sys
+import shared
 from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
     from tempfile import NamedTemporaryFile
     from utilities import ArgParserExtra
 except ImportError: 
-    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.stderr.write(shared.importErrorMessage)
     sys.exit(1)
 
 def main():

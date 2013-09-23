@@ -37,10 +37,11 @@ Output: JSON file with sample names/uri's in correct format
 """
 
 import os, re, sys
+import shared
 try: 
     import argparse, json
 except ImportError: 
-    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.stderr.write(shared.importErrorMessage) 
     sys.exit(1)
 
 class sampleTextParser:
