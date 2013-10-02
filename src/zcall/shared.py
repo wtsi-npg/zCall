@@ -30,7 +30,7 @@
 Author:  Iain Bancarz, ib5@sanger.ac.uk, September 2013
 """
 
-importErrorMessage = """ERROR: Cannot run zCall, one or more prerequisites missing.
+importErrorMessage = """ImportError: Cannot run zCall, one or more prerequisites missing.
 Prerequisites include:
 - Python >= 2.7 or Pypy >= 2.1
 - Plinktools should be in the PYTHONPATH environment variable. 
