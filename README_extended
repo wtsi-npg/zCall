@@ -17,8 +17,12 @@ The etc/config.ini file should be edited to reflect the user's local computing
 environment. 
 
 Software prerequisites are:
-  - Python 2.7.x
+  - Python 2.7.x (or PyPy >= 2.1)
   - R 2.x
+  - Plink should be in the PATH environment variable
+    See: http://pngu.mgh.harvard.edu/~purcell/plink/
+  - Plinktools should be in the PYTHONPATH environment variable
+    See: https://github.com/wtsi-npg/plinktools
 
 3. The zCall method
 

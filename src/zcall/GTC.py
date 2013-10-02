@@ -236,8 +236,10 @@ class GTC:
             tempx3 = tempx2 - (shear * tempy2)
             tempy3 = tempy2
 
-            xn = tempx3 / float(scale_x)
-            yn = tempy3 / float(scale_y)
+            try: xn = tempx3 / float(scale_x)
+            except ZeroDivisionError: xn = 0.0
+            try: yn = tempy3 / float(scale_y)
+            except ZeroDivisionError: yn = 0.0
 
             if xn < 0:
                 xn = 0.0

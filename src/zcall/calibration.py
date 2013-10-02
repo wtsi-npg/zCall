@@ -76,6 +76,11 @@ class ThresholdFinder:
         config = ConfigParser()
         config.readfp(open(configPath))
         self.rScript = config.get('zcall', 'rscript')
+        if (not os.path.exists(self.rScript)):
+            msg = "ERROR: R script executable \""+self.rScript+\
+                "\" does not exist. Check config file: \""+configPath+"\"\n"
+            sys.stderr.write(msg)
+            sys.exit(1)
         self.digits = int(config.get('zcall', 'digits'))
 
     def findMeanSD(self, outPath):

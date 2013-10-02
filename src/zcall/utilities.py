@@ -27,6 +27,7 @@
 # Author: Iain Bancarz, ib5@sanger.ac.uk
 
 import os, json, sys
+from math import isinf, isnan
 from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
@@ -80,7 +81,11 @@ class CallingBase(SharedBase):
         Tx = self.thresholds.getX(i)
         Ty = self.thresholds.getY(i)
         call = None
-        if normX < Tx and normY < Ty: ## Lower left quadrant
+        inputSum = normX+normY+Tx+Ty # use sum to check for NaN or infinity
+        if (isnan(inputSum) or isinf(inputSum)):
+            ## NaN or infinity present in inputs -- no call
+            call = 0
+        elif normX < Tx and normY < Ty: ## Lower left quadrant
             call = 0
         elif normX >= Tx and normY <= Ty: ## Lower right quadrant
             call = 1

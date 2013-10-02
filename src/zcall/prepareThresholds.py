@@ -34,13 +34,14 @@ January 2013
 """
 
 import cProfile, os, sys, time
+import shared
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
     from calibration import ThresholdFinder
     from utilities import ArgParserExtra
-except ImportError: 
-    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+except ImportError:
+    sys.stderr.write(shared.importErrorMessage) 
     sys.exit(1)
 
 """
