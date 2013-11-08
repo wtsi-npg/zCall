@@ -34,14 +34,20 @@ import sys
 
 class BPM:
     ''' Python class to parse a .bpm.csv file '''
-    def __init__(self, bpmFile):
+    def __init__(self, bpmFile, normalize=True):
         self.names = []
         self.chr = []
         self.pos = []
         self.normID = []
         self.A = []
         self.B = []
-        
+        self.ilmnStrand = [] # illumina strand designation
+        self.numSNPs = 0
+        self.readFile(bpmFile)
+        if normalize: self.normalizeStrand()
+
+    def readFile(self, bpmFile):
+        """ read input from .bpm.csv path and update instance variables """
         for line in open(bpmFile, 'r'):
             line = line.replace("\n", "")
             line = line.replace("\r", "")
@@ -60,8 +66,73 @@ class BPM:
                 alleles = alleles.split("/")
                 self.A.append(alleles[0]) # allele A
                 self.B.append(alleles[1]) # allele B
+                self.ilmnStrand.append(fields[6][0]) # one of T,B,M,P
                 self.normID.append(int(fields[8])) # normalization ID for that snp
         self.numSNPs = len(self.names)
+
+    def normalizeStrand(self):
+        """ Implement Illumina normalization to top strand 
+
+        Equivalent normalization done by simtools for other callers at WTSI
+        See zCall/src/doc/illumina_strand_normalization.pdf
+
+        Strand is usually TOP (T) or BOT (B), but may be MINUS (M) or PLUS (P)
+
+        Commentary from simtools/Manifest.cpp:
+
+  // input_snp will be something like "[A/C]"; we want to store it as "AC"
+  // Illumina method aims to designate A as Allele A on TOP, 
+  // and the T as Alelle A on BOT.
+  // 
+  // Read as [A/B]    Strand      Store as Allele A, Allele B for TOP
+  
+  // [C/A]             BOT (B)            GT    
+  // [G/A]             BOT                CT
+  // [G/C]             BOT                CG
+  // [T/G]             BOT                AC 
+  // [T/C]             BOT                AG
+  // [T/A]             BOT                AT
+  
+  // So BOT to TOP is C->G, A->T, G->C, T->A
+
+  // [A/C]             TOP (T)            AC
+  // [A/G]             TOP                AG
+  // [A/T]             TOP                AT
+  // [C/G]             TOP                CG
+  // [C/T]             TOP                CT
+  // [G/T]	           TOP                GT
+  
+  // weird cases
+  // [D/I]             M                  DI
+  // [D/I]             P                  DI
+  // [I/D]             M                  ID
+  // [I/D]             P                  ID
+  // [N/A]             P                  NA
+        """
+        
+        # apply normalization to alleles in self.A and self.B
+        # Use '?' for unknown or missing data
+        for i in range(self.numSNPs):
+            strand = self.ilmnStrand[i]
+            if strand=='T' or strand=='M' or strand=='P':
+                continue
+            elif strand=='B':
+                # normalize A allele
+                if self.A[i]=='C': self.A[i] = 'G'
+                elif self.A[i]=='G': self.A[i] = 'C'
+                elif self.A[i]=='T': self.A[i] = 'A'
+                elif self.A[i]=='A': self.A[i] = 'T'
+                else: self.A[i] = '?'
+                # normalize B allele
+                if self.B[i]=='C': self.B[i] = 'G'
+                elif self.B[i]=='G': self.B[i] = 'C'
+                elif self.B[i]=='T': self.B[i] = 'A'
+                elif self.B[i]=='A': self.B[i] = 'T'
+                else: self.B[i] = '?'
+            else:
+                self.A[i] = '?' 
+                self.B[i] = '?'
+
 
     def getChromosomes(self):
         return self.chr

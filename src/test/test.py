@@ -71,11 +71,11 @@ class TestScripts(unittest.TestCase):
         if binary:
             suffixes = ['.bed', '.bim', '.fam']
             expected = ['55fa3cfd960d43366cb506ab004ac300',
-                        '19dd8929cd63e3ee906e43b9bb59cd02',
+                        '22707056e282e42a14ddfeaf04e5b3f8',
                         'b836bd45459de6a9bc4b8d92e8c9e298']
         else:
             suffixes = ['.ped', '.map', '.fam']
-            expected = ['731e0199b1433228abf80ec8126089d1',
+            expected = ['029bd376d81bfd11292ac9704f7455fb',
                         'df64da4ef76b2df1040df375a8933f45',
                         'b836bd45459de6a9bc4b8d92e8c9e298']
         for i in range(len(suffixes)):
@@ -247,7 +247,7 @@ class TestScripts(unittest.TestCase):
         outStem = os.path.join(self.outDir, self.prefix)
         suffixes = ['.bed', '.bim', '.fam']
         expected = ['8e222b46b0760cba5de1d2bded337c76',
-                    '19dd8929cd63e3ee906e43b9bb59cd02',
+                    '22707056e282e42a14ddfeaf04e5b3f8',
                     'b836bd45459de6a9bc4b8d92e8c9e298']
         for i in range(len(suffixes)):
             self.assertTrue(os.path.exists(outStem+suffixes[i]))
