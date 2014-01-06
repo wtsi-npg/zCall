@@ -1,13 +1,15 @@
-zCall: A Rare Variant Caller for Array-Based Genotyping
-(Extended version)
+zCall: A Rare Variant Caller for Array-Based Genotyping (Extended version)
+==========================================================================
 
 
 1. Overview
+-----------
 
 This document covers the extended version of zCall, located in the 'src' 
 directory on github. For other implementations, see Section 8 (History).
 
 2. Installation
+---------------
 
 Use GNU Make, with the target 'install'. For example, 'make install 
 /home/jsmith/foo' will create a directory /home/jsmith/foo/zCall and install 
@@ -17,14 +19,15 @@ The etc/config.ini file should be edited to reflect the user's local computing
 environment. 
 
 Software prerequisites are:
-  - Python 2.7.x (or PyPy >= 2.1)
-  - R 2.x
-  - Plink should be in the PATH environment variable
+  * Python 2.7.x (or PyPy >= 2.1)
+  * R 2.x
+  * Plink should be in the PATH environment variable
     See: http://pngu.mgh.harvard.edu/~purcell/plink/
-  - Plinktools should be in the PYTHONPATH environment variable
+  * Plinktools should be in the PYTHONPATH environment variable
     See: https://github.com/wtsi-npg/plinktools
 
 3. The zCall method
+-------------------
 
 Applying zCall consists of four steps:
   1. Generate candidate zscore threshold files
@@ -34,6 +37,7 @@ Applying zCall consists of four steps:
 the input data.
 
 4. Usage
+--------
 
 The user's PATH variable must include the path to the 'zcall' subdirectory of 
 the installation (or alternatively to src/zcall in the source code).
@@ -52,16 +56,18 @@ The original authors of zCall recommend that samples which fail quality control
 should be excluded from zCall calibration and re-calling.
 
 5. Other scripts and modules
+----------------------------
 
-  - Modules containing relevant classes but not intended to be run as scripts: 
+  * Modules containing relevant classes but not intended to be run as scripts: 
 BPM.py, calibration.py, EGT.py, GTC.py, plink.py, utilities.py
-  - Original zCall scripts, with .py filename extension omitted to prevent 
+  * Original zCall scripts, with .py filename extension omitted to prevent 
 automatic import: findMeanSD, findThresholds
-  - Additional command-line scripts, run with -h or --help for usage: 
+  * Additional command-line scripts, run with -h or --help for usage: 
 createDocs.py, plinkEquivalenceTest.py
-  - R script used to find thresholds: findBetas.r
+  * R script used to find thresholds: findBetas.r
 
 6. Data formats
+---------------
 
 Input data consists of binary .gtc files, one for each sample. In addition, 
 zCall requires an appropriate .egt cluster file and .bpm.csv manifest file. 
@@ -74,6 +80,7 @@ files are written in JSON, a simple text-based format for storing data
 structures (see http://www.json.org/).
 
 7. Further reading
+------------------
 
 The document src/doc/zCallExtended.tex describes how the extended version 
 expands on the prototypes, including automated evaluation of candidate zscore 
@@ -82,6 +89,7 @@ src/zcall/createDocs.py. The zCall method is discussed in the paper by JI
 Goldstein et al. (see Section 8 below).
 
 8. History
+----------
 
 The zCall method was originally developed by Jackie Goldstein 
 (jigold@broadinstitute.org) et al. and published in the following paper:
