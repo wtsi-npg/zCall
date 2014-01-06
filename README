@@ -1,8 +1,9 @@
 
 zCall: A Rare Variant Caller for Array-based Genotyping
----------------------------------------------------------------
+=======================================================
 
 I. Overview
+-----------
 
 zCall is a variant caller specifically designed for calling rare single 
 nucleotide polymorphisms (SNPs) from array-based technology. This caller is 
@@ -18,6 +19,7 @@ extended zCall can be run with a single command and has other added
 capabilities.
 
 II. Publication and downloads
+-----------------------------
 
 The paper describing zCall is:
 Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, 
@@ -34,6 +36,7 @@ from Github as a .zip file (approximately 0.8 MB). Extended zCall can be
 installed from a download of the full repository, using the included Makefile.
 
 III. Disclaimer
+---------------
 
 The prototype and extended editions of zCall include code provided by Illumina. 
 The Illumina provided Code was provided as-is and with no warranty as to 
@@ -41,6 +44,7 @@ performance and no warranty against it infringing any other party's
 intellectual property rights.
 
 IV. Contacts
+------------
 
 The original zCall method and prototype implementations were developed by 
 Jackie Goldstein et al.  For questions about prototype zCall or reporting 
