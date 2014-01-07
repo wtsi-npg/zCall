@@ -63,10 +63,9 @@ control should be excluded from zCall calibration and re-calling.
 5. Other scripts and modules
 ----------------------------
 
-  * Modules containing relevant classes but not intended to be run as scripts: 
-BPM.py, calibration.py, EGT.py, GTC.py, plink.py, utilities.py
   * Additional command-line scripts, run with -h or --help for usage: 
-createDocs.py, plinkEquivalenceTest.py
+appendPEDline.py, createDocs.py, textToSampleJson.py
+  * Other Python files are modules which contain relevant classes but are not intended to be run as scripts.
   * R script used to find thresholds: findBetas.r
 
 6. Data formats
