@@ -5,8 +5,8 @@ zCall: Extended Version
 1. Overview
 -----------
 
-This document covers the extended version of zCall, located in the 'src' 
-directory on github. For other implementations, see Section 8 (History).
+This document covers the extended version of zCall, located in the `src` 
+directory on github. For other implementations, see Section 9 (History).
 
 2. Installation
 ---------------
@@ -65,8 +65,6 @@ control should be excluded from zCall calibration and re-calling.
 
   * Modules containing relevant classes but not intended to be run as scripts: 
 BPM.py, calibration.py, EGT.py, GTC.py, plink.py, utilities.py
-  * Original zCall scripts, with .py filename extension omitted to prevent 
-automatic import: findMeanSD, findThresholds
   * Additional command-line scripts, run with -h or --help for usage: 
 createDocs.py, plinkEquivalenceTest.py
   * R script used to find thresholds: findBetas.r
