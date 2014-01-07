@@ -1,8 +1,8 @@
 
-zCall: A Rare Variant Caller for Array-based Genotyping
+zCall: A Rare Variant Caller for Array-Based Genotyping
 =======================================================
 
-I. Overview
+1. Overview
 -----------
 
 zCall is a variant caller specifically designed for calling rare single 
@@ -13,12 +13,12 @@ profile of the common allele homozygote cluster to define the location of the
 other two genotype clusters. 
 
 The zCall code includes three prototype versions, and an extended version; 
-these are documented respectively in README_prototypes and README_extended. 
+these are documented respectively in README_prototypes and README_extended.md. 
 The prototypes are run in a series of steps with some manual intervention; 
 extended zCall can be run with a single command and has other added 
 capabilities.
 
-II. Publication and downloads
+2. Publication and downloads
 -----------------------------
 
 The paper describing zCall is:
@@ -35,7 +35,7 @@ directory. The entire zCall repository can be cloned using Git or downloaded
 from Github as a .zip file (approximately 0.8 MB). Extended zCall can be 
 installed from a download of the full repository, using the included Makefile.
 
-III. Disclaimer
+3. Disclaimer
 ---------------
 
 The prototype and extended editions of zCall include code provided by Illumina. 
@@ -43,7 +43,7 @@ The Illumina provided Code was provided as-is and with no warranty as to
 performance and no warranty against it infringing any other party's 
 intellectual property rights.
 
-IV. Contacts
+4. Contacts
 ------------
 
 The original zCall method and prototype implementations were developed by 
