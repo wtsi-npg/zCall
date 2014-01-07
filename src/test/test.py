@@ -38,7 +38,6 @@ Required input data:
 - Example BPM, EGT files
 - Example GTC files -- may have privacy issues
 - (TODO Test on public GTC data, with corresponding BPM/EGT)
-- (TODO Create and test a one-step "wrapper" script to calibrate, evaluate and call without any parallelization)
 
 Author:  Iain Bancarz, ib5@sanger.ac.uk
 """
