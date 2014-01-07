@@ -38,7 +38,6 @@ Required input data:
 - Example BPM, EGT files
 - Example GTC files -- may have privacy issues
 - (TODO Test on public GTC data, with corresponding BPM/EGT)
-- (TODO Create and test a one-step "wrapper" script to calibrate, evaluate and call without any parallelization)
 
 Author:  Iain Bancarz, ib5@sanger.ac.uk
 """
@@ -157,6 +156,9 @@ class TestScripts(unittest.TestCase):
         else:
             sys.stderr.write("WARNING: Missing thresholds, see test/README.")
         self.sampleJson = os.path.join(self.dataDir, 'test_sample.json')
+
+    def tearDown(self):
+        os.system("rm -Rf "+self.outDir)
 
     def test_prepareThresholds(self):
         """Prepare thresholds.txt files
