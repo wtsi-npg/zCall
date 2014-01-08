@@ -159,6 +159,7 @@ class TestScripts(unittest.TestCase):
 
     def tearDown(self):
         os.system("rm -Rf "+self.outDir)
+        print "Removed output directory", self.outDir
 
     def test_prepareThresholds(self):
         """Prepare thresholds.txt files
