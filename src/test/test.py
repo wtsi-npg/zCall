@@ -258,5 +258,38 @@ class TestScripts(unittest.TestCase):
             self.assertEqual(checksum, expected[i])  
         self.validatePlink(self.prefix, True)
 
+    def test_complete_alternate(self):
+        """As for test_complete, but with alternate dataset
+
+        Manifest has 719665 SNPs, so this checks the null padding operation"""
+        zstart = 7
+        ztotal = 1
+        self.bpmPath = os.path.join(self.bigData, 'HumanOmniExpress-12v1-1_A.bpm.csv')
+        self.egtPath = os.path.join(self.bigData, 'HumanOmniExpress-12v1-1_b.egt')
+        self.sampleJson = os.path.join(self.dataDir, 'test2.sample.json')
+        args = ['zcall/zCallComplete.py',
+                '--bpm', self.bpmPath,
+                '--egt', self.egtPath,
+                '--out', self.outDir,
+                '--zstart', str(zstart),
+                '--ztotal', str(ztotal),
+                '--samples', self.sampleJson,
+                '--text', os.path.join(self.outDir, 'metric_summary.txt'),
+                '--plink', self.prefix,
+                '--binary'
+                ]
+        self.assertEqual(os.system(' '.join(args)), 0)
+        outStem = os.path.join(self.outDir, self.prefix)
+        suffixes = ['.bed', '.bim', '.fam']
+        expected = ['863eb70d672d5ce71cead57b767a4688',
+                    'cccb69c7bb690ee15cb6397b7d20db41',
+                    '14e7a7ffaf112132ffa12e1cbf8c8892']
+        for i in range(len(suffixes)):
+            self.assertTrue(os.path.exists(outStem+suffixes[i]))
+            checksum = self.getMD5hex(outStem+suffixes[i])
+            self.assertEqual(checksum, expected[i])  
+        self.validatePlink(self.prefix, True)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
