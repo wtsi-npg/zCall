@@ -1,0 +1,66 @@
+[
+    {
+        "gender": "Female",
+        "gender_code": 2,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R01C01.gtc",
+        "sanger_sample_id": "hhtmri5617332",
+        "uri": "urn:wtsi:310735_A01_hhtmri5617332"
+    },
+    {
+        "gender": "Male",
+        "gender_code": 1,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R02C01.gtc",
+        "sanger_sample_id": "hhtmri5617334",
+        "uri": "urn:wtsi:310735_B01_hhtmri5617334"
+    },
+    {
+        "gender": "Female",
+        "gender_code": 2,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R03C01.gtc",
+        "sanger_sample_id": "hhtmri5617335",
+        "uri": "urn:wtsi:310735_C01_hhtmri5617335"
+    },
+    {
+        "gender": "Female",
+        "gender_code": 2,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R04C01.gtc",
+        "sanger_sample_id": "hhtmri5617336",
+        "uri": "urn:wtsi:310735_D01_hhtmri5617336"
+    },
+    {
+        "gender": "Female",
+        "gender_code": 2,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R05C01.gtc",
+        "sanger_sample_id": "hhtmri5617337",
+        "uri": "urn:wtsi:310735_E01_hhtmri5617337"
+    },
+    {
+        "gender": "Male",
+        "gender_code": 1,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R06C01.gtc",
+        "sanger_sample_id": "hhtmri5617338",
+        "uri": "urn:wtsi:310735_F01_hhtmri5617338"
+    },
+    {
+        "gender": "Female",
+        "gender_code": 2,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R01C02.gtc",
+        "sanger_sample_id": "hhtmri5617339",
+        "uri": "urn:wtsi:310735_G01_hhtmri5617339"
+    },
+    {
+        "gender": "Female",
+        "gender_code": 2,
+        "gender_method": "Supplied",
+        "result": "/nfs/gapi/data/genotype/pipeline_test/zcall_test/9422798202_R02C02.gtc",
+        "sanger_sample_id": "hhtmri5617340",
+        "uri": "urn:wtsi:310735_H01_hhtmri5617340"
+    }
+]
