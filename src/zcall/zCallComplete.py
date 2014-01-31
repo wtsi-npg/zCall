@@ -41,12 +41,13 @@ datasets where parallelization is not required, and an illustration of the
 zcall method.
 """
 import cProfile, os, sys, time
+import shared
 try: 
     import argparse, json
     from tempfile import NamedTemporaryFile
     from utilities import ArgParserExtra
 except ImportError: 
-    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.stderr.write(shared.importErrorMessage) 
     sys.exit(1)
 from calibration import ThresholdFinder, SampleEvaluator, MetricEvaluator
 from runZCall import SampleCaller

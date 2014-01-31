@@ -1,6 +1,4 @@
 #! /usr/bin/python
-import sys
-
 
 # Original code supplied by Illumina, Inc. subsequently modified by Broad 
 # Institute and Genome Research Ltd. The Illumina provided code was provided 
@@ -41,7 +39,12 @@ class BPM:
         self.normID = []
         self.A = []
         self.B = []
-        
+        self.ilmnStrand = [] # illumina strand designation
+        self.numSNPs = 0
+        self.readFile(bpmFile)
+
+    def readFile(self, bpmFile):
+        """ read input from .bpm.csv path and update instance variables """
         for line in open(bpmFile, 'r'):
             line = line.replace("\n", "")
             line = line.replace("\r", "")
@@ -60,8 +63,10 @@ class BPM:
                 alleles = alleles.split("/")
                 self.A.append(alleles[0]) # allele A
                 self.B.append(alleles[1]) # allele B
+                self.ilmnStrand.append(fields[6][0]) # one of T,B,M,P
                 self.normID.append(int(fields[8])) # normalization ID for that snp
         self.numSNPs = len(self.names)
+
 
     def getChromosomes(self):
         return self.chr

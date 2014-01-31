@@ -70,7 +70,7 @@ class PlinkWriter(PlinkHandler):
             calls = sortedCalls
         if self.snpTotal % 4 != 0:
             # if not an integer number of bytes, pad with no calls
-            calls.extend([0]*(self.snpTotal % 4)) 
+            calls.extend([0]*(4 - self.snpTotal % 4)) 
         output = [0]*(int(ceil(self.snpTotal/4.0)))
         i = 0
         while i < self.snpTotal:

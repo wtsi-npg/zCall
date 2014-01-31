@@ -34,12 +34,13 @@ Run with -h or --help for command-line help.
 """
 
 import os, pydoc, re, sys
+import shared
 from importlib import import_module
 from modulefinder import ModuleFinder
 try: 
     import argparse    
 except ImportError: 
-    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.stderr.write(shared.importErrorMessage)
     sys.exit(1)
 
 def main():
