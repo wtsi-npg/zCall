@@ -97,7 +97,7 @@ class PlinkWriter(PlinkHandler):
         Conventionally, set family/individual IDs to sample URI
         Set gender code if known, otherwise default to -9
         Other values set to -9 as placeholder"""
-        fields = ['-9']*6
+        fields = ['0']*6
         fields[0] = sample['uri']
         fields[1] = sample['uri']
         try: fields[4] = str(sample['gender_code'])
