@@ -141,7 +141,7 @@ class TestScripts(unittest.TestCase):
         self.expectedT = {"6":"1a53e8cbba6750d43d5ff607cf616beb",
                           "7":"a8d8b62be728b62fc986230da13f4ef7",
                           "8":"1f14419d0053841cfa8ab3fb994de1c1"}
-        self.outDir = mkdtemp(dir=self.dataDir)
+        self.outDir = mkdtemp(prefix="output_test_", dir=self.dataDir)
         print "Created output directory", self.outDir
         self.bpmPath = os.path.join(self.bigData, 'HumanExome-12v1_A.bpm.csv')
         self.egtPath = os.path.join(self.bigData, 'HumanExome-12v1.egt')
@@ -155,11 +155,12 @@ class TestScripts(unittest.TestCase):
             self.validateThresholds(self.thresholdJson)
         else:
             sys.stderr.write("WARNING: Missing thresholds, see test/README.")
-        self.sampleJson = os.path.join(self.dataDir, 'test_sample.json')
+        self.sampleJson = os.path.join(self.dataDir, 'test1_sample.json')
 
     def tearDown(self):
-        os.system("rm -Rf "+self.outDir)
-        print "Removed output directory", self.outDir
+        # cannot delete temporary directories from within Python unit test
+        # not compatible with NFS behaviour; must delete tempdirs manually
+        pass
 
     def test_prepareThresholds(self):
         """Prepare thresholds.txt files
@@ -266,7 +267,7 @@ class TestScripts(unittest.TestCase):
         ztotal = 1
         self.bpmPath = os.path.join(self.bigData, 'HumanOmniExpress-12v1-1_A.bpm.csv')
         self.egtPath = os.path.join(self.bigData, 'HumanOmniExpress-12v1-1_b.egt')
-        self.sampleJson = os.path.join(self.dataDir, 'test2.sample.json')
+        self.sampleJson = os.path.join(self.dataDir, 'test2_sample.json')
         args = ['zcall/zCallComplete.py',
                 '--bpm', self.bpmPath,
                 '--egt', self.egtPath,

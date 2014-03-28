@@ -44,11 +44,13 @@ from plink import PlinkHandler # requires plinktools in PYTHONPATH
 class PlinkWriter(PlinkHandler):
     """Class to handle Plink format data"""
 
-    def __init__(self, bpm):
+    def __init__(self, bpm, famDummy=-9):
         """Initialize with a BPM object"""
         self.bpm = bpm
         self.snpTotal = self.bpm.getTotalSNPs()
         self.sortMap = self.snpSortMap()
+        # famNull = value in .fam for missing paternal/maternal ID or phenotype
+        self.famDummy = famDummy
 
     def callsToBinary(self, calls, reorder=True):
         """Translate genotype calls for one sample to Plink binary
@@ -95,9 +97,9 @@ class PlinkWriter(PlinkHandler):
         - Sex (1=male; 2=female; other=unknown)
         - Phenotype
         Conventionally, set family/individual IDs to sample URI
-        Set gender code if known, otherwise default to -9
-        Other values set to -9 as placeholder"""
-        fields = ['-9']*6
+        Set gender code if known, otherwise default to the dummy value
+        Other values set to the dummy as placeholder"""
+        fields = [str(self.famDummy)]*6
         fields[0] = sample['uri']
         fields[1] = sample['uri']
         try: fields[4] = str(sample['gender_code'])

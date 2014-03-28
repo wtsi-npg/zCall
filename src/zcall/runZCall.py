@@ -78,17 +78,17 @@ class SampleCaller(CallingBase):
         return (calls, zcalls, gains)
 
     def run(self, samplesPath, outDir, prefix, logPath=None, binary=False,
-            verbose=False, null=False, reorder=True):
+            verbose=False, dummy=-9, skip=False, reorder=True):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(samplesPath)
         calls = []
-        pw = PlinkWriter(self.bpm)
+        pw = PlinkWriter(self.bpm, dummy)
         zcallTotal = 0
         gainsTotal = 0
         for gtcPath in gtcPaths:
             if verbose: print "Calling GTC file", gtcPath
             gtc = GTC(gtcPath, self.bpm.normID)
-            (sampleCalls, zcalls, gains) = self.makeCalls(gtc, null)
+            (sampleCalls, zcalls, gains) = self.makeCalls(gtc, skip)
             if binary: calls.extend(pw.callsToBinary(sampleCalls, reorder))
             else: calls.extend(sampleCalls)
             zcallTotal += zcalls
@@ -145,8 +145,10 @@ def main():
     configDefault = os.path.abspath(configDefault)
     parser.add_argument('--config', metavar="PATH", default=configDefault,
                         help="Path to .ini config file. Default = etc/config.ini")
+    parser.add_argument('--fam-dummy-value', metavar="INT", type=int, choices=(0,-9), default=-9, help="Value in Plink .fam output for missing paternal ID, maternal ID, or phenotype. Must be equal to 0 or -9; defaults to -9.")
     parser.add_argument('--null', action='store_true', default=False,
                         help="Do not apply zcall. Instead output GTC calls unchanged to an individual-major Plink binary file. Used for testing.")
+
     args = vars(parser.parse_args())
     parserExtra = ArgParserExtra(args)
     inputKeys = ['thresholds', 'bpm', 'egt', 'samples', 'config']
@@ -164,14 +166,16 @@ def main():
                                     dir=args['out'], delete=False).name
         arg0 = (args['bpm'], args['egt'], args['thresholds'])
         arg1 = (args['samples'], args['out'], args['plink'], args['log'],
-                args['binary'], args['verbose'], args['null'])
+                args['binary'], args['verbose'], args['missing'],
+                args['null'])
         call = ("SampleCaller('%s', '%s', '%s')." % arg0)+\
-            ("run('%s', '%s', '%s', '%s', %s, %s, %s)" % arg1)
+            ("run('%s', '%s', '%s', '%s', %s, %s, %s, %s)" % arg1)
         cProfile.run(call, pstats)           
     else:
         caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
         caller.run(args['samples'], args['out'], args['plink'], args['log'],
-                   args['binary'], args['verbose'], args['null'])
+                   args['binary'], args['verbose'], args['fam_dummy_value'], 
+                   args['null'])
 
 if __name__ == "__main__":
     main()

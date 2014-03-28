@@ -62,11 +62,11 @@ class ZCallComplete:
         self.args = args
 
     def call(self, bpm, egt, thresholdPath, sJson, outDir, prefix, binary,
-             verbose):
+             verbose, missing):
         if verbose: print "Running zcall with thresholds", thresholdPath
         logPath = os.path.join(outDir, self.LOG)
         caller = SampleCaller(bpm, egt, thresholdPath)
-        caller.run(sJson, outDir, prefix, logPath, binary, verbose)
+        caller.run(sJson, outDir, prefix, logPath, binary, verbose, missing)
 
     def evaluate(self, bpm, egt, thresholds, gtc, start, end, outDir, verbose):
         """Evaluate threshold.txt files by concordance and gain metrics"""
@@ -118,7 +118,8 @@ class ZCallComplete:
                   self.args['out'],
                   self.args['plink'],
                   self.args['binary'],
-                  self.args['verbose'])
+                  self.args['verbose'],
+                  self.args['fam_dummy_value'])
         
 def main():
     start = time.time()
@@ -156,6 +157,7 @@ def getArgs():
                         help="Prefix for Plink output files")
     parser.add_argument('--binary', action='store_true', default=False,
                         help="Write Plink binary output. If this option is not given, output is in Plink text format.")
+    parser.add_argument('--fam-dummy-value', metavar="INT", type=int, choices=(0,-9), default=-9, help="Value in Plink .fam output for missing paternal ID, maternal ID, or phenotype. Must be equal to 0 or -9; defaults to -9.")
     parser.add_argument('--zstart', metavar="INT", default=7, type=int,
                     help='Starting z score. Default = %(default)s')
     parser.add_argument('--ztotal', metavar="INT", default=1, type=int,
